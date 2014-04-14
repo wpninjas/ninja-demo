@@ -1,12 +1,12 @@
 <?php
 /*
-Plugin Name: Demo Site
-Plugin URI: http://wpninjas.com
+Plugin Name: Demo WP Pro
+Plugin URI: http://demowp.pro
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
 Version: 1.0
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
-Text Domain: ninja-demo
+Text Domain: demo-wp
 Domain Path: /lang/
 
 This program is free software; you can redistribute it and/or
@@ -28,10 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 if ( ! defined( 'ABSPATH' ) )
 	exit;
 
-class Ninja_Demo {
+class Demo_WP {
 
 	/**
-	 * @var Ninja_Demo
+	 * @var Demo_WP
 	 * @since 1.0
 	 */
 	private static $instance;
@@ -49,19 +49,19 @@ class Ninja_Demo {
 	private $watched_folders;
 
 	/**
-	 * Main Ninja_Demo Instance
+	 * Main Demo_WP Instance
 	 *
-	 * Insures that only one instance of Ninja_Demo exists in memory at any one
+	 * Insures that only one instance of Demo_WP exists in memory at any one
 	 * time. Also prevents needing to define globals all over the place.
 	 *
 	 * @since 1.0
 	 * @static
 	 * @staticvar array $instance
-	 * @return The highlander Ninja_Demo
+	 * @return The highlander Demo_WP
 	 */
 	public static function instance() {
-		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Ninja_Demo ) ) {
-			self::$instance = new Ninja_Demo;
+		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Demo_WP ) ) {
+			self::$instance = new Demo_WP;
 			self::$instance->setup_constants();
 			self::$instance->setup_upload_dir();
 			self::$instance->setup_watched_folders();
@@ -78,7 +78,7 @@ class Ninja_Demo {
 
 			add_action( 'upgrader_pre_install', array( self::$instance, 'before_update' ), 10, 2 );
 			add_action( 'upgrader_post_install', array( self::$instance, 'after_update' ), 10, 3 );
-			add_action( 'ninja_demo_restore', array( self::$instance, 'restore_db' ) );
+			add_action( 'demo_wp_restore', array( self::$instance, 'restore_db' ) );
 			add_action( 'admin_notices', array( self::$instance, 'admin_notice' ) );
 			
 
@@ -99,7 +99,7 @@ class Ninja_Demo {
 	 */
 	public function __clone() {
 		// Cloning instances of the class is forbidden
-		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'ninja-demo' ), '1.6' );
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'demo-wp' ), '1.6' );
 	}
 
 	/**
@@ -124,23 +124,23 @@ class Ninja_Demo {
 	private function setup_constants() {
 		
 		// Plugin version
-		if ( ! defined( 'NINJA_DEMO_VERSION' ) ) {
-			define( 'NINJA_DEMO_VERSION', '1.0' );
+		if ( ! defined( 'DEMO_WP_VERSION' ) ) {
+			define( 'DEMO_WP_VERSION', '1.0' );
 		}
 
 		// Plugin Folder Path
-		if ( ! defined( 'NINJA_DEMO_DIR' ) ) {
-			define( 'NINJA_DEMO_DIR', plugin_dir_path( __FILE__ ) );
+		if ( ! defined( 'DEMO_WP_DIR' ) ) {
+			define( 'DEMO_WP_DIR', plugin_dir_path( __FILE__ ) );
 		}
 
 		// Plugin Folder URL
-		if ( ! defined( 'NINJA_DEMO_URL' ) ) {
-			define( 'NINJA_DEMO_URL', plugin_dir_url( __FILE__ ) );
+		if ( ! defined( 'DEMO_WP_URL' ) ) {
+			define( 'DEMO_WP_URL', plugin_dir_url( __FILE__ ) );
 		}
 
 		// Plugin Root File
-		if ( ! defined( 'NINJA_DEMO_FILE' ) ) {
-			define( 'NINJA_DEMO_FILE', __FILE__ );
+		if ( ! defined( 'DEMO_WP_FILE' ) ) {
+			define( 'DEMO_WP_FILE', __FILE__ );
 		}
 	}
 
@@ -152,7 +152,7 @@ class Ninja_Demo {
 	 * @return void
 	 */
 	private function setup_upload_dir() {
-		$upload_dir = NINJA_DEMO_DIR . 'file-backup/';
+		$upload_dir = DEMO_WP_DIR . 'file-backup/';
 		if ( !is_dir( $upload_dir ) )
 			mkdir( $upload_dir );
 		self::$instance->upload_dir = trailingslashit( $upload_dir );
@@ -180,7 +180,7 @@ class Ninja_Demo {
 	 */
 	public function add_menu_page() {
 		if ( self::$instance->is_admin_user() ) {
-			$page = add_menu_page("Demo Site" , __( 'Demo Site', 'ninja-demo' ), apply_filters( 'nd_admin_menu_capabilities', 'manage_options' ), "ninja-demo", array( self::$instance, "output_admin_page" ), "", "32.1337" );
+			$page = add_menu_page("Demo Site" , __( 'Demo Site', 'demo-wp' ), apply_filters( 'nd_admin_menu_capabilities', 'manage_options' ), "demo-wp", array( self::$instance, "output_admin_page" ), "", "32.1337" );
 		}
 	}
 
@@ -194,9 +194,9 @@ class Ninja_Demo {
 	public function output_admin_page() {
 		global $menu, $submenu, $_registered_pages, $_parent_pages;
 
-		$current_state = get_option( 'ninja_demo_state' );
-		$restore_schedule = get_option( 'ninja_demo_schedule' );
-		$tabs = apply_filters( 'nd_tabs' , array( array( 'db' => __( 'Data Protection', 'ninja-demo' ) ), array( 'admin_pages' => __( 'Admin Pages', 'ninja-demo' ) ) ) );
+		$current_state = get_option( 'demo_wp_state' );
+		$restore_schedule = get_option( 'demo_wp_schedule' );
+		$tabs = apply_filters( 'nd_tabs' , array( array( 'db' => __( 'Data Protection', 'demo-wp' ) ), array( 'admin_pages' => __( 'Admin Pages', 'demo-wp' ) ) ) );
 		if ( isset ( $_REQUEST['tab'] ) ) {
 			$current_tab = $_REQUEST['tab'];
 		} else {
@@ -205,9 +205,9 @@ class Ninja_Demo {
 		}
 
 		?>
-		<form id="ninja_demo_admin" enctype="multipart/form-data" method="post" name="" action="">
-			<input type="hidden" name="ninja_demo_submit" value="1">
-			<?php wp_nonce_field('ninja_demo_save','ninja_demo_admin_submit'); ?>
+		<form id="demo_wp_admin" enctype="multipart/form-data" method="post" name="" action="">
+			<input type="hidden" name="demo_wp_submit" value="1">
+			<?php wp_nonce_field('demo_wp_save','demo_wp_admin_submit'); ?>
 			<div class="wrap">
 				<h2 class="nav-tab-wrapper">
 					<?php
@@ -250,7 +250,7 @@ class Ninja_Demo {
 										$parent_slug = $page[2];
 										$class_name = str_replace( '.', '', $parent_slug );
 										?>
-										<li><label><input type="checkbox" name="" value="<?php echo $page[2];?>" class="ninja-demo-parent"> <?php echo $page[0]; ?></label></li>
+										<li><label><input type="checkbox" name="" value="<?php echo $page[2];?>" class="demo-wp-parent"> <?php echo $page[0]; ?></label></li>
 										<?php
 										if ( isset ( $submenu[ $parent_slug ] ) ) {
 											?>
@@ -280,30 +280,30 @@ class Ninja_Demo {
 
 							} else if ( $current_tab == 'db' ) {
 								if ( $current_state == 'frozen' ) {
-									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted every hour.', 'ninja-demo' );
+									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted every hour.', 'demo-wp' );
 									?>
 									<div>
-										<input class="button-secondary" name="ninja_demo_thaw" type="submit" value="<?php _e( 'Thaw Site', 'ninja-demo' ); ?>" />
+										<input class="button-secondary" name="demo_wp_thaw" type="submit" value="<?php _e( 'Thaw Site', 'demo-wp' ); ?>" />
 									</div>
 									<?php
 								} else {
-									_e( 'Your site is currently <strong>thawed</strong>. In this state, any changes to the database will be retained.', 'ninja-demo' );
+									_e( 'Your site is currently <strong>thawed</strong>. In this state, any changes to the database will be retained.', 'demo-wp' );
 									?>
 									<div>
-										<input class="button-secondary" name="ninja_demo_freeze" type="submit" value="<?php _e( 'Freeze Site', 'ninja-demo' ); ?>" />
+										<input class="button-secondary" name="demo_wp_freeze" type="submit" value="<?php _e( 'Freeze Site', 'demo-wp' ); ?>" />
 									</div>
 									<?php
 								}
 								?>
 								<div>
-									<input class="button-secondary" name="ninja_demo_restore" type="submit" value="<?php _e( 'Restore Site', 'ninja-demo' ); ?>" />
+									<input class="button-secondary" name="demo_wp_restore" type="submit" value="<?php _e( 'Restore Site', 'demo-wp' ); ?>" />
 								</div>
 								<div>
 									<?php
 									$intervals = wp_get_schedules();
 									?>
-									<?php _e( 'I would like to reset the database:', 'ninja-demo' ); ?>
-									<select name="ninja_demo_schedule">
+									<?php _e( 'I would like to reset the database:', 'demo-wp' ); ?>
+									<select name="demo_wp_schedule">
 										<?php
 										foreach( $intervals as $key => $int ) {
 											?>
@@ -314,7 +314,7 @@ class Ninja_Demo {
 									</select>
 								</div>
 								<div>
-									<input class="button-primary" name="ninja_demo_settings" type="submit" value="<?php _e( 'Save', 'ninja-demo' ); ?>" />
+									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
 								</div>
 								<?php
 							}
@@ -327,7 +327,7 @@ class Ninja_Demo {
 		</form>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
-				$( document ).on( 'change', '.ninja-demo-parent', function() {
+				$( document ).on( 'change', '.demo-wp-parent', function() {
 					console.log( $( '.demo-admin-' + this.value ) );
 					$( '.demo-admin-' + this.value + ' input' ).attr( 'checked', this.checked );
 				});
@@ -345,37 +345,37 @@ class Ninja_Demo {
 	 */
 	public function save_admin_page() {
 		if ( self::$instance->is_admin_user() ) {
-			if ( isset ( $_POST['ninja_demo_admin_submit'] ) ) {
-				$nonce = $_POST['ninja_demo_admin_submit'];
+			if ( isset ( $_POST['demo_wp_admin_submit'] ) ) {
+				$nonce = $_POST['demo_wp_admin_submit'];
 			} else {
 				$nonce = '';
 			}
 
-			if ( isset ( $_POST['ninja_demo_submit'] ) && $_POST['ninja_demo_submit'] == 1 && wp_verify_nonce( $nonce, 'ninja_demo_save' ) ) {
+			if ( isset ( $_POST['demo_wp_submit'] ) && $_POST['demo_wp_submit'] == 1 && wp_verify_nonce( $nonce, 'demo_wp_save' ) ) {
 				// Check to see if we've hit the freeze or thaw button
-				if ( isset ( $_POST['ninja_demo_freeze'] ) ) {
+				if ( isset ( $_POST['demo_wp_freeze'] ) ) {
 					self::$instance->freeze();
-				} else if ( isset ( $_POST['ninja_demo_thaw'] ) ) {
+				} else if ( isset ( $_POST['demo_wp_thaw'] ) ) {
 					self::$instance->thaw();
-				} else if ( isset ( $_POST['ninja_demo_restore'] ) ) {
+				} else if ( isset ( $_POST['demo_wp_restore'] ) ) {
 					// Purge our WP Engine Cache
 					self::$instance->purge_wpengine_cache();
 					self::$instance->restore_folders();
 					self::$instance->restore_db();
-				} else if ( isset ( $_POST['ninja_demo_settings'] ) ) {
-					if ( isset ( $_POST['ninja_demo_schedule'] ) ) {
+				} else if ( isset ( $_POST['demo_wp_settings'] ) ) {
+					if ( isset ( $_POST['demo_wp_schedule'] ) ) {
 						// Thaw our db if it isn't already
 						$thaw = false;
-						if ( get_option( 'ninja_demo_state' ) == 'frozen' ) {
+						if ( get_option( 'demo_wp_state' ) == 'frozen' ) {
 							$thaw = true;
 							self::$instance->thaw();
 						}
 							
-						update_option( 'ninja_demo_schedule', $_POST['ninja_demo_schedule'] );
+						update_option( 'demo_wp_schedule', $_POST['demo_wp_schedule'] );
 						// Remove our scheduled task that restores the database
-						wp_clear_scheduled_hook( 'ninja_demo_restore' );
+						wp_clear_scheduled_hook( 'demo_wp_restore' );
 						// Setup our scheduled task to restore the database
-						wp_schedule_event( time(), get_option( 'ninja_demo_schedule' ), 'ninja_demo_restore' );
+						wp_schedule_event( time(), get_option( 'demo_wp_schedule' ), 'demo_wp_restore' );
 						self::$instance->freeze();
 					}
 				}
@@ -392,7 +392,7 @@ class Ninja_Demo {
 	 */
 	public function check_querystring() {
 		global $pagenow;
-		if ( self::$instance->is_admin_user() && $pagenow == 'admin.php' && isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'ninja-demo' ) {
+		if ( self::$instance->is_admin_user() && $pagenow == 'admin.php' && isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'demo-wp' ) {
 			if ( isset ( $_REQUEST['action'] ) && $_REQUEST['action'] != '' ) {
 				if ( $_REQUEST['action'] == 'thaw' ) {
 					// Thaw our site
@@ -421,7 +421,7 @@ class Ninja_Demo {
 	 */
 	private function freeze() {
 		// Set our current state to frozen
-		update_option( 'ninja_demo_state', 'frozen' );
+		update_option( 'demo_wp_state', 'frozen' );
 
 		// Purge our WP Engine Cache
 		self::$instance->purge_wpengine_cache();
@@ -433,7 +433,7 @@ class Ninja_Demo {
 		self::$instance->backup_folders();
 
 		// Setup our scheduled task to restore the database
-		wp_schedule_event( time(), get_option( 'ninja_demo_schedule' ), 'ninja_demo_restore' );
+		wp_schedule_event( time(), get_option( 'demo_wp_schedule' ), 'demo_wp_restore' );
 	}
 
 	/**
@@ -445,7 +445,7 @@ class Ninja_Demo {
 	 */
 	private function thaw(){
 		// Set our current state to thawed
-		update_option( 'ninja_demo_state', 'thawed' );
+		update_option( 'demo_wp_state', 'thawed' );
 
 		// Purge our WP Engine Cache
 		self::$instance->purge_wpengine_cache();
@@ -457,7 +457,7 @@ class Ninja_Demo {
 		self::$instance->restore_db();
 
 		// Remove our scheduled task that restores the database
-		wp_clear_scheduled_hook( 'ninja_demo_restore' );
+		wp_clear_scheduled_hook( 'demo_wp_restore' );
 	}
 
 	/**
@@ -473,11 +473,11 @@ class Ninja_Demo {
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
 		$wpdb->query( 'DELETE FROM ' . $wpdb->options .' WHERE option_name = "cron"' );
 
-		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_state"', ARRAY_A );
-		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_state"' );
+		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"', ARRAY_A );
+		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"' );
 
-		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_schedule"', ARRAY_A );
-		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_schedule"' );
+		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"', ARRAY_A );
+		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"' );
 
 		$link = mysqli_connect( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
 		
@@ -516,7 +516,7 @@ class Ninja_Demo {
 		mysqli_close( $link );
 		//save file
 
-		$handle = fopen( trailingslashit( NINJA_DEMO_DIR ) . 'backup.sql ' , 'w+' );
+		$handle = fopen( trailingslashit( DEMO_WP_DIR ) . 'backup.sql ' , 'w+' );
 		fwrite( $handle, $return );
 		fclose( $handle );
 
@@ -535,10 +535,10 @@ class Ninja_Demo {
 	public function restore_db() {
 		global $wpdb;
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
-		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_state"', ARRAY_A );
-		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "ninja_demo_schedule"', ARRAY_A );
+		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"', ARRAY_A );
+		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"', ARRAY_A );
 
-		$filename = trailingslashit( NINJA_DEMO_DIR ) . 'backup.sql ';
+		$filename = trailingslashit( DEMO_WP_DIR ) . 'backup.sql ';
 		// Temporary variable, used to store current query
 		$templine = '';
 		// Read in entire file
@@ -666,9 +666,9 @@ class Ninja_Demo {
 	 */
 	public function activation() {
 		$user_id = get_current_user_id();
-		update_option( 'ninja_demo_user', $user_id );
-		update_option( 'ninja_demo_state', 'thawed' );
-		update_option( 'ninja_demo_schedule', 'hourly' );
+		update_option( 'demo_wp_user', $user_id );
+		update_option( 'demo_wp_state', 'thawed' );
+		update_option( 'demo_wp_schedule', 'hourly' );
 	}
 
 	/**
@@ -728,7 +728,7 @@ class Ninja_Demo {
 
   			// If we are on any of these pages, then throw an error.
   			if ( in_array( $pagenow, $pages ) )
-  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
 		}
 	}
 
@@ -740,9 +740,9 @@ class Ninja_Demo {
 	 * @return void
 	 */
 	public function maintenance_mode() {
-		$current_state = get_option( 'ninja_demo_state' );
+		$current_state = get_option( 'demo_wp_state' );
 		if ( $current_state == 'thawed' && ! self::$instance->is_admin_user() )
-			wp_die( __( 'This demo site is currently in maintenance mode. Please return soon.', 'ninja-demo' ) );
+			wp_die( __( 'This demo site is currently in maintenance mode. Please return soon.', 'demo-wp' ) );
 	}
 
 	/**
@@ -753,7 +753,7 @@ class Ninja_Demo {
 	 * @return bool
 	 */
 	private function is_admin_user() {
-		$admin_id = get_option( 'ninja_demo_user' );
+		$admin_id = get_option( 'demo_wp_user' );
 		$user_id = get_current_user_id();
 		return $admin_id == $user_id;
 	}
@@ -792,22 +792,22 @@ class Ninja_Demo {
 	public function admin_notice() {
 		global $pagenow;
 		
-		// Make sure we aren't already looking at the ninja-demo plugin
-		if ( isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'ninja-demo' )
+		// Make sure we aren't already looking at the demo-wp plugin
+		if ( isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'demo-wp' )
 			return false;
 		if ( self::$instance->is_admin_user() ) {
-			$current_state = get_option( 'ninja_demo_state' );
+			$current_state = get_option( 'demo_wp_state' );
 			$current_url = urlencode( add_query_arg( array() ) );
 			if ( $current_state == 'frozen' ) {
-				$msg = __( 'Your site is currently <strong>frozen</strong>. No changes will be retained.', 'ninja-demo' );
-				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'thaw', 'redirect' => $current_url ), menu_page_url( 'ninja-demo', false ) ) . '" class="button-secondary" name="ninja_demo_thaw">' . __( 'Thaw Site', 'ninja-demo' ) . '</a>';
+				$msg = __( 'Your site is currently <strong>frozen</strong>. No changes will be retained.', 'demo-wp' );
+				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'thaw', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_thaw">' . __( 'Thaw Site', 'demo-wp' ) . '</a>';
 			} else {
-				$msg = __( 'Your site is currently <strong>thawed</strong>. All changes will be retained.', 'ninja-demo' );
-				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'freeze', 'redirect' => $current_url ), menu_page_url( 'ninja-demo', false ) ) . '" class="button-secondary" name="ninja_demo_freeze">'. __( 'Freeze Site', 'ninja-demo' ) .'</a>';
+				$msg = __( 'Your site is currently <strong>thawed</strong>. All changes will be retained.', 'demo-wp' );
+				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'freeze', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_freeze">'. __( 'Freeze Site', 'demo-wp' ) .'</a>';
 			}
-			$url = add_query_arg( array( 'tab' => 'db' ), menu_page_url( 'ninja-demo', false ) );
+			$url = add_query_arg( array( 'tab' => 'db' ), menu_page_url( 'demo-wp', false ) );
 
-			$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'restore', 'redirect' => $current_url ), menu_page_url( 'ninja-demo', false ) ) . '" class="button-secondary" name="ninja_demo_restore">' . __( 'Restore Database', 'ninja-demo' ) .'</a>';
+			$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'restore', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_restore">' . __( 'Restore Database', 'demo-wp' ) .'</a>';
 			?>
 			<div class="updated">
 	       		<p><?php echo $msg; ?></p>
@@ -837,20 +837,20 @@ class Ninja_Demo {
 }
 
 /**
- * The main function responsible for returning the one true Ninja_Demo
+ * The main function responsible for returning the one true Demo_WP
  * Instance to functions everywhere.
  *
  * Use this function like you would a global variable, except without needing
  * to declare the global.
  *
- * Example: <?php $edd = EDD(); ?>
+ * Example: <?php $dwp = Demo_WP(); ?>
  *
  * @since 1.0
- * @return object The highlander Ninja_Demo Instance
+ * @return object The highlander Demo_WP Instance
  */
-function Ninja_Demo() {
-	return Ninja_Demo::instance();
+function Demo_WP() {
+	return Demo_WP::instance();
 }
 
-// Get EDD Running
-Ninja_Demo();
+// Get Demo_WP Running
+Demo_WP();
