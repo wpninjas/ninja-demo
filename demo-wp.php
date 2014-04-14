@@ -40,13 +40,19 @@ class Demo_WP {
 	 * @var upload directory
 	 * @since 1.0
 	 */
-	private $upload_dir;
+	private $backup_dir;
 
 	/**
 	 * @var file folders to watch for changes
 	 * @since 1.0
 	 */
 	private $watched_folders;
+
+	/**
+	 * @var keep our settings
+	 * @since 1.0
+	 */
+	private $settings;
 
 	/**
 	 * Main Demo_WP Instance
@@ -62,9 +68,7 @@ class Demo_WP {
 	public static function instance() {
 		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Demo_WP ) ) {
 			self::$instance = new Demo_WP;
-			self::$instance->setup_constants();
-			self::$instance->setup_upload_dir();
-			self::$instance->setup_watched_folders();
+			self::$instance->setup();
 
 			add_action( 'init', array( self::$instance, 'purge_wpengine_cache' ) );
 			add_action( 'init', array( self::$instance, 'maintenance_mode' ) );
@@ -115,6 +119,44 @@ class Demo_WP {
 	}
 
 	/**
+	 * Run all of our setup functions
+	 * 
+	 * @access private
+	 * @since 1.0
+	 * @return void
+	 */
+	private function setup() {
+		self::$instance->setup_constants();
+		self::$instance->get_settings();
+		self::$instance->setup_backup_dir();
+		self::$instance->setup_watched_folders();
+	}
+
+	/**
+	 * Get our plugin settings
+	 * 
+	 * @access private
+	 * @since 1.0
+	 * @return void
+	 */
+	private function get_settings() {
+		$settings = get_option( 'demo_wp' );
+		self::$instance->settings = $settings;
+	}
+
+	/**
+	 * Update our plugin settings
+	 * 
+	 * @access private
+	 * @since 1.0
+	 * @return void
+	 */
+	private function update_settings( $args ) {
+		self::$instance->settings = $args;
+		update_option( 'demo_wp', $args );
+	}
+
+	/**
 	 * Setup plugin constants
 	 *
 	 * @access private
@@ -151,11 +193,11 @@ class Demo_WP {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function setup_upload_dir() {
-		$upload_dir = DEMO_WP_DIR . 'file-backup/';
-		if ( !is_dir( $upload_dir ) )
-			mkdir( $upload_dir );
-		self::$instance->upload_dir = trailingslashit( $upload_dir );
+	private function setup_backup_dir() {
+		$backup_dir = DEMO_WP_DIR . 'file-backup/';
+		if ( !is_dir( $backup_dir ) )
+			mkdir( $backup_dir );
+		self::$instance->backup_dir = trailingslashit( $backup_dir );
 	}
 
 	/**
@@ -166,9 +208,12 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function setup_watched_folders() {
-		$uploads_dir = wp_upload_dir();
-		$uploads_dir = $uploads_dir['basedir'];
-		self::$instance->watched_folders = apply_filters( 'nd_watched_folders', array( $uploads_dir ) );
+		$folders = explode( "\n", self::$instance->settings['folders'] );
+		$folders = array_filter( $folders, 'trim' ); // remove any extra \r characters left behind
+
+		// $uploads_dir = wp_upload_dir();
+		// $uploads_dir = $uploads_dir['basedir'];
+		self::$instance->watched_folders = apply_filters( 'dwp_watched_folders', $folders );
 	}
 
 	/**
@@ -180,7 +225,7 @@ class Demo_WP {
 	 */
 	public function add_menu_page() {
 		if ( self::$instance->is_admin_user() ) {
-			$page = add_menu_page("Demo Site" , __( 'Demo Site', 'demo-wp' ), apply_filters( 'nd_admin_menu_capabilities', 'manage_options' ), "demo-wp", array( self::$instance, "output_admin_page" ), "", "32.1337" );
+			$page = add_menu_page("Demo Site" , __( 'Demo Site', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_options' ), "demo-wp", array( self::$instance, "output_admin_page" ), "", "32.1337" );
 		}
 	}
 
@@ -194,9 +239,13 @@ class Demo_WP {
 	public function output_admin_page() {
 		global $menu, $submenu, $_registered_pages, $_parent_pages;
 
-		$current_state = get_option( 'demo_wp_state' );
-		$restore_schedule = get_option( 'demo_wp_schedule' );
-		$tabs = apply_filters( 'nd_tabs' , array( array( 'db' => __( 'Data Protection', 'demo-wp' ) ), array( 'admin_pages' => __( 'Admin Pages', 'demo-wp' ) ) ) );
+		$current_state = self::$instance->settings['state'];
+		$restore_schedule = self::$instance->settings['schedule'];
+
+		$tabs = apply_filters( 'dwp_tabs' , array( 
+			array( 'db' => __( 'Data Protection', 'demo-wp' ) ), 
+			array( 'admin_pages' => __( 'Admin Pages', 'demo-wp' ) ),
+		) );
 		if ( isset ( $_REQUEST['tab'] ) ) {
 			$current_tab = $_REQUEST['tab'];
 		} else {
@@ -238,7 +287,68 @@ class Demo_WP {
 					<div id="post-body">
 						<div id="post-body-content">
 							<?php
-							if ( $current_tab == 'admin_pages' ) {
+							if ( $current_tab == 'db' ) {
+								$upload_dir = wp_upload_dir();
+								$upload_dir = $upload_dir['basedir'];
+								$folders = self::$instance->settings['folders'];
+								if ( $folders === false )
+									$folders = $upload_dir;
+
+								if ( $current_state == 'frozen' ) {
+									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted every hour.', 'demo-wp' );
+									?>
+									<div>
+										<input class="button-secondary" name="demo_wp_thaw" type="submit" value="<?php _e( 'Thaw Site', 'demo-wp' ); ?>" />
+									</div>
+									<?php
+								} else {
+									_e( 'Your site is currently <strong>thawed</strong>. In this state, any changes to the database will be retained.', 'demo-wp' );
+									?>
+									<div>
+										<input class="button-secondary" name="demo_wp_freeze" type="submit" value="<?php _e( 'Freeze Site', 'demo-wp' ); ?>" />
+									</div>
+									<?php
+								}
+								?>
+								<div>
+									<input class="button-secondary" name="demo_wp_restore" type="submit" value="<?php _e( 'Restore Site', 'demo-wp' ); ?>" />
+								</div>
+								<div>
+									<?php
+									$intervals = wp_get_schedules();
+									?>
+									<?php _e( 'I would like to reset the site:', 'demo-wp' ); ?>
+									<select name="demo_wp_schedule">
+										<?php
+										foreach( $intervals as $key => $int ) {
+											?>
+											<option value="<?php echo $key; ?>" <?php selected( $restore_schedule, $key ); ?>><?php echo $int['display']; ?></option>
+											<?php
+										}
+										?>
+									</select>
+								</div>
+								<div>
+									<p>
+									<?php
+										_e( 'Please enter list of file paths to backup and restore, with each path on its own line.', 'demo-wp' );
+									?>
+									</p>
+									<p>
+									<?php
+										_e( 'The path to the WordPress uploads folder is', 'demo-wp' );
+										echo ': &nbsp;<em>' . $upload_dir . '</em';
+									?>
+									</p>
+									<div>
+										<textarea name="demo_wp_folders" rows="10" cols="150"><?php echo $folders; ?></textarea>
+									</div>
+								</div>
+								<div>
+									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
+								</div>
+								<?php
+							} else if ( $current_tab == 'admin_pages' ) {
 								$x = 0;
 								foreach( $menu as $page ) {
 									if ( $x == 0 ) {
@@ -278,45 +388,6 @@ class Demo_WP {
 									
 								}
 
-							} else if ( $current_tab == 'db' ) {
-								if ( $current_state == 'frozen' ) {
-									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted every hour.', 'demo-wp' );
-									?>
-									<div>
-										<input class="button-secondary" name="demo_wp_thaw" type="submit" value="<?php _e( 'Thaw Site', 'demo-wp' ); ?>" />
-									</div>
-									<?php
-								} else {
-									_e( 'Your site is currently <strong>thawed</strong>. In this state, any changes to the database will be retained.', 'demo-wp' );
-									?>
-									<div>
-										<input class="button-secondary" name="demo_wp_freeze" type="submit" value="<?php _e( 'Freeze Site', 'demo-wp' ); ?>" />
-									</div>
-									<?php
-								}
-								?>
-								<div>
-									<input class="button-secondary" name="demo_wp_restore" type="submit" value="<?php _e( 'Restore Site', 'demo-wp' ); ?>" />
-								</div>
-								<div>
-									<?php
-									$intervals = wp_get_schedules();
-									?>
-									<?php _e( 'I would like to reset the database:', 'demo-wp' ); ?>
-									<select name="demo_wp_schedule">
-										<?php
-										foreach( $intervals as $key => $int ) {
-											?>
-											<option value="<?php echo $key; ?>" <?php selected( $restore_schedule, $key ); ?>><?php echo $int['display']; ?></option>
-											<?php
-										}
-										?>
-									</select>
-								</div>
-								<div>
-									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
-								</div>
-								<?php
 							}
 							?>							
 						</div><!-- /#post-body-content -->
@@ -363,21 +434,31 @@ class Demo_WP {
 					self::$instance->restore_folders();
 					self::$instance->restore_db();
 				} else if ( isset ( $_POST['demo_wp_settings'] ) ) {
+					// Thaw our db if it isn't already
+					$frozen = false;
+					if ( self::$instance->settings['state'] == 'frozen' ) {
+						$frozen = true;
+						self::$instance->thaw();
+					}
+
 					if ( isset ( $_POST['demo_wp_schedule'] ) ) {
-						// Thaw our db if it isn't already
-						$thaw = false;
-						if ( get_option( 'demo_wp_state' ) == 'frozen' ) {
-							$thaw = true;
-							self::$instance->thaw();
-						}
-							
-						update_option( 'demo_wp_schedule', $_POST['demo_wp_schedule'] );
+						self::$instance->settings['schedule'] = $_POST['demo_wp_schedule'];
 						// Remove our scheduled task that restores the database
 						wp_clear_scheduled_hook( 'demo_wp_restore' );
 						// Setup our scheduled task to restore the database
-						wp_schedule_event( time(), get_option( 'demo_wp_schedule' ), 'demo_wp_restore' );
-						self::$instance->freeze();
+						wp_schedule_event( time(), self::$instance->settings['schedule'], 'demo_wp_restore' );
 					}
+
+					if ( isset ( $_POST['demo_wp_folders'] ) ) {
+						$folders = $_POST['demo_wp_folders'];
+						$folders = join( "\n", array_map( "trim", explode( "\n", $folders ) ) );
+						self::$instance->settings['folders'] = $folders;
+					}
+
+					self::$instance->update_settings( self::$instance->settings );
+	
+					if ( $frozen )
+						self::$instance->freeze();
 				}
 			}
 		}
@@ -421,7 +502,8 @@ class Demo_WP {
 	 */
 	private function freeze() {
 		// Set our current state to frozen
-		update_option( 'demo_wp_state', 'frozen' );
+		self::$instance->settings['state'] = 'frozen';
+		self::$instance->update_settings( self::$instance->settings );
 
 		// Purge our WP Engine Cache
 		self::$instance->purge_wpengine_cache();
@@ -433,7 +515,7 @@ class Demo_WP {
 		self::$instance->backup_folders();
 
 		// Setup our scheduled task to restore the database
-		wp_schedule_event( time(), get_option( 'demo_wp_schedule' ), 'demo_wp_restore' );
+		wp_schedule_event( time(), self::$instance->settings['schedule'], 'demo_wp_restore' );
 	}
 
 	/**
@@ -445,7 +527,8 @@ class Demo_WP {
 	 */
 	private function thaw(){
 		// Set our current state to thawed
-		update_option( 'demo_wp_state', 'thawed' );
+		self::$instance->settings['state'] = 'thawed';
+		self::$instance->update_settings( self::$instance->settings );
 
 		// Purge our WP Engine Cache
 		self::$instance->purge_wpengine_cache();
@@ -473,11 +556,8 @@ class Demo_WP {
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
 		$wpdb->query( 'DELETE FROM ' . $wpdb->options .' WHERE option_name = "cron"' );
 
-		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"', ARRAY_A );
-		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"' );
-
-		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"', ARRAY_A );
-		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"' );
+		$demo_wp = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"', ARRAY_A );
+		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"' );
 
 		$link = mysqli_connect( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
 		
@@ -521,8 +601,7 @@ class Demo_WP {
 		fclose( $handle );
 
 		$wpdb->insert( $wpdb->options, $cron_row );
-		$wpdb->insert( $wpdb->options, $current_state );
-		$wpdb->insert( $wpdb->options, $schedule );
+		$wpdb->insert( $wpdb->options, $demo_wp );
 	}
 
 	/**
@@ -535,9 +614,8 @@ class Demo_WP {
 	public function restore_db() {
 		global $wpdb;
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
-		$current_state = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_state"', ARRAY_A );
-		$schedule = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp_schedule"', ARRAY_A );
-
+		$demo_wp = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"', ARRAY_A );
+		
 		$filename = trailingslashit( DEMO_WP_DIR ) . 'backup.sql ';
 		// Temporary variable, used to store current query
 		$templine = '';
@@ -564,8 +642,7 @@ class Demo_WP {
 		}
 
 		$wpdb->insert( $wpdb->options, $cron_row );
-		$wpdb->insert( $wpdb->options, $current_state );
-		$wpdb->insert( $wpdb->options, $schedule );
+		$wpdb->insert( $wpdb->options, $demo_wp );
 	}
 
 	/**
@@ -577,13 +654,13 @@ class Demo_WP {
 	 */
 	public function backup_folders() {
 		// Clean out our current backup folder.
-		self::$instance->delete_folder_contents( self::$instance->upload_dir );
-		self::$instance->setup_upload_dir();
+		self::$instance->delete_folder_contents( self::$instance->backup_dir );
+		self::$instance->setup_backup_dir();
 
 		// Loop through our watched folders and back each one up.
 		foreach( self::$instance->watched_folders as $folder ) {
 			// Copy our watched folder to our backup directory.
-			self::$instance->copy_folder( $folder, self::$instance->upload_dir . basename( $folder ) );
+			self::$instance->copy_folder( $folder, self::$instance->backup_dir . basename( $folder ) );
 		}
 	}
 
@@ -599,7 +676,9 @@ class Demo_WP {
 	private function copy_folder( $source, $dest ) {
 		$source = trailingslashit( $source );
 		$dest = trailingslashit( $dest );
-
+		// Bail if our source isn't a folder.
+		if ( !is_dir( $source ) )
+			return false;
 	    if ( $handle = opendir( $source ) ) {
 	    	if ( !is_dir( $dest ) )
 	    		mkdir( $dest, 0755 );
@@ -632,7 +711,7 @@ class Demo_WP {
 			// Delete the current contents of our folders.
 			self::$instance->delete_folder_contents( $folder );
 			// Copy the files from our backup directory
-			self::$instance->copy_folder( self::$instance->upload_dir . basename( $folder ), $folder );
+			self::$instance->copy_folder( self::$instance->backup_dir . basename( $folder ), $folder );
 		}
 	}
 
@@ -644,6 +723,9 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function delete_folder_contents( $dir ) {
+		// Bail if we aren't sent a directory
+		if ( !is_dir( $dir ) )
+			return false;
         foreach( scandir( $dir ) as $file ) {
             if ( '.' === $file || '..' === $file )
                 continue;
@@ -665,10 +747,20 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function activation() {
-		$user_id = get_current_user_id();
-		update_option( 'demo_wp_user', $user_id );
-		update_option( 'demo_wp_state', 'thawed' );
-		update_option( 'demo_wp_schedule', 'hourly' );
+		if ( get_option( 'demo_wp' ) == false ) {
+			$uploads_dir = wp_upload_dir();
+			$uploads_dir = $uploads_dir['basedir'];
+			$user_id = get_current_user_id();
+
+			$args = array(
+				'user' => $user_id,
+				'state' => 'thawed',
+				'schedule' => 'hourly',
+				'folders' => $uploads_dir . "\r\n",
+			);
+
+			update_option( 'demo_wp', $args );
+		}
 	}
 
 	/**
@@ -683,12 +775,12 @@ class Demo_WP {
 
 		if ( ! self::$instance->is_admin_user() ) {
 
-			$pages = apply_filters( 'nd_prevent_access', array(
+			$pages = apply_filters( 'dwp_prevent_access', array(
 				'themes.php',
 			) );
 
 			// Remove our menu links.
-			$menu_links = apply_filters( 'nd_hide_menu_pages', array(
+			$menu_links = apply_filters( 'dwp_hide_menu_pages', array(
 				'plugins.php',
 				'users.php',
 				'tools.php',
@@ -696,7 +788,7 @@ class Demo_WP {
 				'options.php',
 			) );
 
-			$submenu_links = apply_filters( 'nd_hide_submenu_pages', array(
+			$submenu_links = apply_filters( 'dwp_hide_submenu_pages', array(
 				array( 'parent' => 'index.php', 'child' => 'update-core.php' ),
 
 				array( 'parent' => 'themes.php', 'child' => 'theme-editor.php' ),
@@ -740,8 +832,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function maintenance_mode() {
-		$current_state = get_option( 'demo_wp_state' );
-		if ( $current_state == 'thawed' && ! self::$instance->is_admin_user() )
+		if ( self::$instance->settings['state'] == 'thawed' && ! self::$instance->is_admin_user() )
 			wp_die( __( 'This demo site is currently in maintenance mode. Please return soon.', 'demo-wp' ) );
 	}
 
@@ -753,9 +844,8 @@ class Demo_WP {
 	 * @return bool
 	 */
 	private function is_admin_user() {
-		$admin_id = get_option( 'demo_wp_user' );
 		$user_id = get_current_user_id();
-		return $admin_id == $user_id;
+		return self::$instance->settings['user'] == $user_id;
 	}
 
 	/**
@@ -796,9 +886,8 @@ class Demo_WP {
 		if ( isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'demo-wp' )
 			return false;
 		if ( self::$instance->is_admin_user() ) {
-			$current_state = get_option( 'demo_wp_state' );
 			$current_url = urlencode( add_query_arg( array() ) );
-			if ( $current_state == 'frozen' ) {
+			if ( self::$instance->settings['state'] == 'frozen' ) {
 				$msg = __( 'Your site is currently <strong>frozen</strong>. No changes will be retained.', 'demo-wp' );
 				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'thaw', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_thaw">' . __( 'Thaw Site', 'demo-wp' ) . '</a>';
 			} else {
