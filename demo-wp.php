@@ -77,8 +77,14 @@ class Demo_WP {
 			add_action( 'admin_init', array( self::$instance, 'save_admin_page' ) );
 			add_action( 'admin_init', array( self::$instance, 'remove_pages' ) );
 			add_action( 'admin_init', array( self::$instance, 'check_querystring' ) );
-			
+			add_action( 'admin_enqueue_scripts', array( self::$instance, 'output_css' ) );
+
+
 			add_filter( 'auto_update_plugin', '__return_true' );
+			add_filter( 'show_password_fields', array( self::$instance, 'disable_passwords' ) );
+		    add_filter( 'allow_password_reset', array( self::$instance, 'disable_passwords' ) );
+		    add_action( 'personal_options_update', array( self::$instance, 'disable_email' ), 1 );
+		    add_action( 'edit_user_profile_update', array( self::$instance, 'disable_email' ), 1 );
 
 			add_action( 'upgrader_pre_install', array( self::$instance, 'before_update' ), 10, 2 );
 			add_action( 'upgrader_post_install', array( self::$instance, 'after_update' ), 10, 3 );
@@ -251,7 +257,7 @@ class Demo_WP {
 
 		$tabs = apply_filters( 'dwp_tabs' , array( 
 			array( 'db' => __( 'Data Protection', 'demo-wp' ) ), 
-			array( 'admin_pages' => __( 'Admin Pages', 'demo-wp' ) ),
+			array( 'admin_restrictions' => __( 'Admin Restrictions', 'demo-wp' ) ),
 		) );
 		if ( isset ( $_REQUEST['tab'] ) ) {
 			$current_tab = $_REQUEST['tab'];
@@ -302,7 +308,7 @@ class Demo_WP {
 									$folders = $upload_dir;
 
 								if ( $current_state == 'frozen' ) {
-									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted every hour.', 'demo-wp' );
+									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted.', 'demo-wp' );
 									?>
 									<div>
 										<input class="button-secondary" name="demo_wp_thaw" type="submit" value="<?php _e( 'Thaw Site', 'demo-wp' ); ?>" />
@@ -355,7 +361,7 @@ class Demo_WP {
 									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
 								</div>
 								<?php
-							} else if ( $current_tab == 'admin_pages' ) {
+							} else if ( $current_tab == 'admin_restrictions' ) {
 								?>
 								<div>
 									<?php _e( 'Prevent users from accessing these pages', 'demo-wp' ); ?>
@@ -415,12 +421,15 @@ class Demo_WP {
 										$x++;
 									}
 								}
+							?>
+								</div>	
+								<div>
+									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
+								</div>
+							<?php
 							}
 							?>
-							</div>	
-							<div>
-								<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
-							</div>					
+					
 						</div><!-- /#post-body-content -->
 					</div><!-- /#post-body -->
 				</div>
@@ -851,9 +860,40 @@ class Demo_WP {
 			}
 
   			// If we are on any of these pages, then throw an error.
-  			if ( in_array( $pagenow, $pages ) )
+  			if ( in_array( $pagenow, $pages ) || ( isset ( $_REQUEST['page'] ) && in_array( $_REQUEST['page'], $pages ) ) )
   				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
 		}
+	}
+
+	/**
+	 * Disable the password field on our profile page if this isn't the admin user.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function disable_passwords() {
+		if ( ! self::$instance->is_admin_user() )
+			return false;
+		return true;
+	}
+
+	/**
+	 * Remove the email address from the profile page if this isn't the admin user.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function disable_email( $user_id ) {
+		$user_info = get_userdata( $user_id );
+
+		if ( ! self::$instance->is_admin_user() )
+			$_POST['first_name'] = $user_info->user_firstname;
+			$_POST['last_name'] = $user_info->user_lastname;
+			$_POST['nickname'] = $user_info->nickname;
+			$_POST['display_name'] = $user_info->display_name;
+			$_POST['email'] = $user_info->user_email;
 	}
 
 	/**
@@ -971,6 +1011,21 @@ class Demo_WP {
 	        }
 	    }
 	    return false;
+	}
+
+	/**
+	 * Output CSS on every admin page for the status bar.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function output_css() {
+		// CSS GOES HERE.
+		?>
+
+
+		<?php
 	}
 }
 
