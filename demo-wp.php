@@ -90,7 +90,7 @@ class Demo_WP {
 			add_action( 'upgrader_post_install', array( self::$instance, 'after_update' ), 10, 3 );
 			add_action( 'demo_wp_restore', array( self::$instance, 'restore_db' ) );
 			add_action( 'admin_notices', array( self::$instance, 'admin_notice' ) );
-			
+
 
 			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 		}
@@ -126,7 +126,7 @@ class Demo_WP {
 
 	/**
 	 * Run all of our setup functions
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -140,7 +140,7 @@ class Demo_WP {
 
 	/**
 	 * Get our plugin settings
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -152,7 +152,7 @@ class Demo_WP {
 
 	/**
 	 * Update our plugin settings
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -170,7 +170,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function setup_constants() {
-		
+
 		// Plugin version
 		if ( ! defined( 'DEMO_WP_VERSION' ) ) {
 			define( 'DEMO_WP_VERSION', '1.0' );
@@ -194,7 +194,7 @@ class Demo_WP {
 
 	/**
 	 * Setup upload directory
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -215,7 +215,7 @@ class Demo_WP {
 
 	/**
 	 * Setup watched folders
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -231,7 +231,7 @@ class Demo_WP {
 
 	/**
 	 * Add admin menu page
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -244,7 +244,7 @@ class Demo_WP {
 
 	/**
 	 * Output the admin menu page
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -255,8 +255,8 @@ class Demo_WP {
 		$current_state = self::$instance->settings['state'];
 		$restore_schedule = self::$instance->settings['schedule'];
 
-		$tabs = apply_filters( 'dwp_tabs' , array( 
-			array( 'db' => __( 'Data Protection', 'demo-wp' ) ), 
+		$tabs = apply_filters( 'dwp_tabs' , array(
+			array( 'db' => __( 'Data Protection', 'demo-wp' ) ),
 			array( 'admin_restrictions' => __( 'Admin Restrictions', 'demo-wp' ) ),
 		) );
 		if ( isset ( $_REQUEST['tab'] ) ) {
@@ -284,10 +284,10 @@ class Demo_WP {
 								<?php $tab_link = add_query_arg( array( 'tab' => $slug ) ); ?>
 								<a href="<?php echo $tab_link; ?>" class="nav-tab"><?php echo $nicename; ?></a>
 								<?php
-							}							
+							}
 						}
 					}
-					?>					
+					?>
 				</h2>
 				<!--
 				<div id="message" class="updated below-h2">
@@ -307,25 +307,25 @@ class Demo_WP {
 								if ( $folders === false )
 									$folders = $upload_dir;
 
+								echo '<div class="updated"><div class="demowp-bar">';
 								if ( $current_state == 'frozen' ) {
+									echo '<div>';
 									_e( 'Your site is currently <strong>frozen</strong>. In this state, any changes to the database will be reverted.', 'demo-wp' );
+									echo '</div>';
 									?>
-									<div>
 										<input class="button-secondary" name="demo_wp_thaw" type="submit" value="<?php _e( 'Thaw Site', 'demo-wp' ); ?>" />
-									</div>
 									<?php
 								} else {
+									echo '<div>';
 									_e( 'Your site is currently <strong>thawed</strong>. In this state, any changes to the database will be retained.', 'demo-wp' );
+									echo '</div>';
 									?>
-									<div>
 										<input class="button-secondary" name="demo_wp_freeze" type="submit" value="<?php _e( 'Freeze Site', 'demo-wp' ); ?>" />
-									</div>
 									<?php
 								}
 								?>
-								<div>
 									<input class="button-secondary" name="demo_wp_restore" type="submit" value="<?php _e( 'Restore Site', 'demo-wp' ); ?>" />
-								</div>
+								</div></div>
 								<div>
 									<?php
 									$intervals = wp_get_schedules();
@@ -354,7 +354,7 @@ class Demo_WP {
 									?>
 									</p>
 									<div>
-										<textarea name="demo_wp_folders" rows="10" cols="150"><?php echo $folders; ?></textarea>
+										<textarea name="demo_wp_folders" rows="10" cols="80"><?php echo $folders; ?></textarea>
 									</div>
 								</div>
 								<div>
@@ -422,14 +422,14 @@ class Demo_WP {
 									}
 								}
 							?>
-								</div>	
+								</div>
 								<div>
 									<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
 								</div>
 							<?php
 							}
 							?>
-					
+
 						</div><!-- /#post-body-content -->
 					</div><!-- /#post-body -->
 				</div>
@@ -450,7 +450,7 @@ class Demo_WP {
 
 	/**
 	 * Save our admin page
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -514,7 +514,7 @@ class Demo_WP {
 					}
 
 					self::$instance->update_settings( self::$instance->settings );
-	
+
 					if ( $frozen )
 						self::$instance->freeze();
 				}
@@ -524,7 +524,7 @@ class Demo_WP {
 
 	/**
 	 * Check for our querystring action
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -553,7 +553,7 @@ class Demo_WP {
 
 	/**
 	 * Freeze our database
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -578,7 +578,7 @@ class Demo_WP {
 
 	/**
 	 * Thaw our database
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -603,7 +603,7 @@ class Demo_WP {
 
 	/**
 	 * Create an export of our database as it is now.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -618,28 +618,28 @@ class Demo_WP {
 		$wpdb->query( 'DELETE FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"' );
 
 		$link = mysqli_connect( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME );
-		
+
 		$tables = array();
 		$result = mysqli_query( $link, 'SHOW TABLES' );
 		while( $row = mysqli_fetch_row( $result ) )	{
 			$tables[] = $row[0];
 		}
-		
+
 		$return = '';
-		
+
 		//cycle through
 		foreach( $tables as $table ) {
 			$result = mysqli_query( $link, 'SELECT * FROM '.$table);
 			$num_fields = mysqli_field_count( $link );
-			
+
 			$return.= 'DROP TABLE '.$table.';';
 			$row2 = mysqli_fetch_row( mysqli_query( $link, 'SHOW CREATE TABLE '.$table ) ) ;
 			$return.= "\n\n".$row2[1].";\n\n";
-			
+
 			for ($i = 0; $i < $num_fields; $i++) {
 				while( $row = mysqli_fetch_row( $result ) )	{
 					$return.= 'INSERT INTO '.$table.' VALUES(';
-					for($j=0; $j<$num_fields; $j++) 
+					for($j=0; $j<$num_fields; $j++)
 					{
 						$row[$j] = addslashes($row[$j]);
 						$row[$j] = str_replace("\n","\\n",$row[$j]);
@@ -664,7 +664,7 @@ class Demo_WP {
 
 	/**
 	 * Restore our database from our backup.sql file
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -677,7 +677,7 @@ class Demo_WP {
 
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
 		$demo_wp = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"', ARRAY_A );
-				
+
 		// Temporary variable, used to store current query
 		$templine = '';
 		// Read in entire file
@@ -708,7 +708,7 @@ class Demo_WP {
 
 	/**
 	 * Backup our file folders
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -727,7 +727,7 @@ class Demo_WP {
 
 	/**
 	 * Copy folder and contents to the backup directory
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @param string $source  Source path
@@ -756,12 +756,12 @@ class Demo_WP {
 		    	}
 		    }
 		}
-	    closedir( $handle ); 
+	    closedir( $handle );
 	}
 
 	/**
 	 * Restore our file folders
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -780,7 +780,7 @@ class Demo_WP {
 
 	/**
 	 * Clear out the contents of our watched folders
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -804,7 +804,7 @@ class Demo_WP {
 
 	/**
 	 * Upon activation, setup our super admin
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -830,7 +830,7 @@ class Demo_WP {
 
 	/**
 	 * Prevent the user from visiting various pages
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -867,7 +867,7 @@ class Demo_WP {
 
 	/**
 	 * Disable the password field on our profile page if this isn't the admin user.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -880,7 +880,7 @@ class Demo_WP {
 
 	/**
 	 * Remove the email address from the profile page if this isn't the admin user.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -898,7 +898,7 @@ class Demo_WP {
 
 	/**
 	 * Put up a maintenance error if we are thawed and not the administrator
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -910,7 +910,7 @@ class Demo_WP {
 
 	/**
 	 * Check to see if the current user is our admin user
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return bool
@@ -922,7 +922,7 @@ class Demo_WP {
 
 	/**
 	 * Thaw our db before an update
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return bool
@@ -934,7 +934,7 @@ class Demo_WP {
 
 	/**
 	 * Re-freeze our db after an update
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -946,40 +946,40 @@ class Demo_WP {
 
 	/**
 	 * Display a notice with our current database state
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
 	public function admin_notice() {
 		global $pagenow;
-		
+
 		// Make sure we aren't already looking at the demo-wp plugin
 		if ( isset ( $_REQUEST['page'] ) && $_REQUEST['page'] == 'demo-wp' )
 			return false;
 		if ( self::$instance->is_admin_user() ) {
 			$current_url = urlencode( add_query_arg( array() ) );
 			if ( self::$instance->settings['state'] == 'frozen' ) {
-				$msg = __( 'Your site is currently <strong>frozen</strong>. No changes will be retained.', 'demo-wp' );
-				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'thaw', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_thaw">' . __( 'Thaw Site', 'demo-wp' ) . '</a>';
+				$msg = '<div>' . __( 'Your site is currently <strong>frozen</strong>. No changes will be retained.', 'demo-wp' ) . '</div>';
+				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'thaw', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-primary" name="demo_wp_thaw">' . __( 'Thaw Site', 'demo-wp' ) . '</a>';
 			} else {
-				$msg = __( 'Your site is currently <strong>thawed</strong>. All changes will be retained.', 'demo-wp' );
-				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'freeze', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_freeze">'. __( 'Freeze Site', 'demo-wp' ) .'</a>';
+				$msg = '<div>' . __( 'Your site is currently <strong>thawed</strong>. All changes will be retained.', 'demo-wp' ) . '</div>';
+				$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'freeze', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-primary" name="demo_wp_freeze">'. __( 'Freeze Site', 'demo-wp' ) .'</a>';
 			}
 			$url = add_query_arg( array( 'tab' => 'db' ), menu_page_url( 'demo-wp', false ) );
 
-			$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'restore', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-secondary" name="demo_wp_restore">' . __( 'Restore Database', 'demo-wp' ) .'</a>';
+			$msg .= ' <a href="' . add_query_arg( array( 'tab' => 'db', 'action' => 'restore', 'redirect' => $current_url ), menu_page_url( 'demo-wp', false ) ) . '" class="button-primary" name="demo_wp_restore">' . __( 'Restore Database', 'demo-wp' ) .'</a>';
 			?>
 			<div class="updated">
-	       		<p><?php echo $msg; ?></p>
+	       		<div class="demowp-bar"><?php echo $msg; ?></div>
 		    </div>
-		    <?php			
+		    <?php
 		}
 	}
 
 	/**
 	 * Purge WPengine cache when we restore the database.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -992,13 +992,13 @@ class Demo_WP {
 			WpeCommon::purge_varnish_cache();  // refresh our own cache (after CDN purge, in case that needed to clear before we access new content)
 			WpeCommon::empty_all_caches();
 			$errors = ob_get_contents();
-			ob_end_clean();			
+			ob_end_clean();
 		}
 	}
 
 	/**
 	 * Search an array recursively for a value
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return string $key
@@ -1015,7 +1015,7 @@ class Demo_WP {
 
 	/**
 	 * Output CSS on every admin page for the status bar.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -1023,8 +1023,15 @@ class Demo_WP {
 	public function output_css() {
 		// CSS GOES HERE.
 		?>
-
-
+		<style>
+			.demowp-bar {
+				padding: 5px 0;
+			}
+			.demowp-bar div {
+				display: inline-block;
+				padding: 5px 10px 5px 0;
+			}
+		</style>
 		<?php
 	}
 }
