@@ -194,9 +194,16 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function setup_backup_dir() {
-		$backup_dir = DEMO_WP_DIR . 'file-backup/';
+		$backup_dir = str_replace( 'plugins/demo-wp/', '', plugin_dir_path( __FILE__ ) )  . 'dwp-backup';
+		$backup_dir = str_replace( 'plugins\demo-wp\\', '', $backup_dir );
+		//$backup_dir = DEMO_WP_DIR . 'file-backup/';
 		if ( !is_dir( $backup_dir ) )
 			mkdir( $backup_dir );
+
+		$backup_dir = trailingslashit( $backup_dir ) . 'files';
+		if ( ! is_dir( $backup_dir ) )
+			mkdir( $backup_dir );
+
 		self::$instance->backup_dir = trailingslashit( $backup_dir );
 	}
 
@@ -237,7 +244,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function output_admin_page() {
-		global $menu, $submenu, $_registered_pages, $_parent_pages;
+		global $menu, $submenu;
 
 		$current_state = self::$instance->settings['state'];
 		$restore_schedule = self::$instance->settings['schedule'];
@@ -349,6 +356,14 @@ class Demo_WP {
 								</div>
 								<?php
 							} else if ( $current_tab == 'admin_pages' ) {
+								?>
+								<div>
+									<?php _e( 'Prevent users from accessing these pages', 'demo-wp' ); ?>
+								</div>
+								<div>
+									<input type="hidden" name="demo_wp_parent_pages[]" value="">
+									<input type="hidden" name="demo_wp_child_pages[]" value="">
+								<?php
 								$x = 0;
 								foreach( $menu as $page ) {
 									if ( $x == 0 ) {
@@ -356,23 +371,37 @@ class Demo_WP {
 											<ul style="float:left;">
 										<?php
 									}
-									if ( isset ( $page[0] ) && $page[0] != '' ) {
+									if ( isset ( $page[0] ) && $page[0] != '' && $page[2] != 'demo-wp' && $page[2] != 'plugins.php' ) {
 										$parent_slug = $page[2];
 										$class_name = str_replace( '.', '', $parent_slug );
 										?>
-										<li><label><input type="checkbox" name="" value="<?php echo $page[2];?>" class="demo-wp-parent"> <?php echo $page[0]; ?></label></li>
+										<li><label><input type="checkbox" name="demo_wp_parent_pages[]" value="<?php echo $page[2];?>" class="demo-wp-parent" <?php checked( in_array( $page[2], self::$instance->settings['parent_pages'] ) ); ?>> <?php echo $page[0]; ?></label>
 										<?php
 										if ( isset ( $submenu[ $parent_slug ] ) ) {
 											?>
-											<ul style="margin-left:30px;" class="demo-admin-<?php echo $parent_slug; ?>">
+											<ul style="margin-left:30px;">
 											<?php
 											foreach( $submenu[ $parent_slug ] as $subpage ) {
+												$found = false;
+												foreach ( self::$instance->settings['child_pages'] as $child_page ) {
+													if ( $child_page['child'] == $subpage[2] ) {
+														$found = true;
+														break;
+													}
+												}
+												//$found = self::$instance->recursive_array_search( $subpage[2], self::$instance->settings['child_pages'] );
+												if ( $found !== false ) {
+													$checked = 'checked="checked"';
+												} else {
+													$checked = '';
+												}
 												?>
-												<li><label><input type="checkbox" name="" value="<?php echo $subpage[2]; ?>"> <?php echo $subpage[0]; ?></label></li>
+												<li><label><input type="checkbox" name="demo_wp_child_pages[]" value="<?php echo $subpage[2]; ?>" <?php echo $checked; ?>> <?php echo $subpage[0]; ?></label></li>
 												<?php
 											}
 											?>
 											</ul>
+										</li>
 											<?php
 										}
 									}
@@ -385,11 +414,13 @@ class Demo_WP {
 									} else {
 										$x++;
 									}
-									
 								}
-
 							}
-							?>							
+							?>
+							</div>	
+							<div>
+								<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
+							</div>					
 						</div><!-- /#post-body-content -->
 					</div><!-- /#post-body -->
 				</div>
@@ -399,8 +430,9 @@ class Demo_WP {
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$( document ).on( 'change', '.demo-wp-parent', function() {
-					console.log( $( '.demo-admin-' + this.value ) );
-					$( '.demo-admin-' + this.value + ' input' ).attr( 'checked', this.checked );
+					if ( this.checked ) {
+						$( this ).parent().parent().find( 'input' ).attr( 'checked', this.checked );
+					}
 				});
 			});
 		</script>
@@ -415,6 +447,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function save_admin_page() {
+		global $menu, $submenu;
 		if ( self::$instance->is_admin_user() ) {
 			if ( isset ( $_POST['demo_wp_admin_submit'] ) ) {
 				$nonce = $_POST['demo_wp_admin_submit'];
@@ -453,6 +486,22 @@ class Demo_WP {
 						$folders = $_POST['demo_wp_folders'];
 						$folders = join( "\n", array_map( "trim", explode( "\n", $folders ) ) );
 						self::$instance->settings['folders'] = $folders;
+					}
+
+					if ( isset ( $_POST['demo_wp_parent_pages'] ) ) {
+						// if ( $_POST['demo_wp_parent_pages'] == '' ) {
+						// 	$_POST['demo_wp_parent_pages'] = array();
+						// }
+						self::$instance->settings['parent_pages'] = $_POST['demo_wp_parent_pages'];
+					}
+
+					if ( isset ( $_POST['demo_wp_child_pages'] ) ) {
+						$child_pages = array();
+						foreach( $_POST['demo_wp_child_pages'] as $page ) {
+							$key = self::$instance->recursive_array_search( $page, $submenu );
+							$child_pages[] = array( 'parent' => $key, 'child' => $page );
+						}
+						self::$instance->settings['child_pages'] = $child_pages;
 					}
 
 					self::$instance->update_settings( self::$instance->settings );
@@ -596,7 +645,7 @@ class Demo_WP {
 		mysqli_close( $link );
 		//save file
 
-		$handle = fopen( trailingslashit( DEMO_WP_DIR ) . 'backup.sql ' , 'w+' );
+		$handle = fopen( str_replace( 'files/', '', self::$instance->backup_dir )  . 'backup.sql ' , 'w+' );
 		fwrite( $handle, $return );
 		fclose( $handle );
 
@@ -613,10 +662,13 @@ class Demo_WP {
 	 */
 	public function restore_db() {
 		global $wpdb;
+		$filename = str_replace( 'files/', '', self::$instance->backup_dir ) . 'backup.sql ';
+		if ( ! file_exists( $filename ) )
+			return false;
+
 		$cron_row = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "cron"', ARRAY_A );
 		$demo_wp = $wpdb->get_row( 'SELECT * FROM ' . $wpdb->options . ' WHERE option_name = "demo_wp"', ARRAY_A );
-		
-		$filename = trailingslashit( DEMO_WP_DIR ) . 'backup.sql ';
+				
 		// Temporary variable, used to store current query
 		$templine = '';
 		// Read in entire file
@@ -708,10 +760,12 @@ class Demo_WP {
 	public function restore_folders() {
 		// Loop through our watched folders and back each one up.
 		foreach( self::$instance->watched_folders as $folder ) {
-			// Delete the current contents of our folders.
-			self::$instance->delete_folder_contents( $folder );
-			// Copy the files from our backup directory
-			self::$instance->copy_folder( self::$instance->backup_dir . basename( $folder ), $folder );
+			// Delete the current contents of our folder if we have a backup.
+			if ( is_dir( self::$instance->backup_dir . basename( $folder ) ) ) {
+				self::$instance->delete_folder_contents( $folder );
+				// Copy the files from our backup directory
+				self::$instance->copy_folder( self::$instance->backup_dir . basename( $folder ), $folder );
+			}
 		}
 	}
 
@@ -757,6 +811,8 @@ class Demo_WP {
 				'state' => 'thawed',
 				'schedule' => 'hourly',
 				'folders' => $uploads_dir . "\r\n",
+				'parent_pages' => array(),
+				'child_pages' => array(),
 			);
 
 			update_option( 'demo_wp', $args );
@@ -775,38 +831,14 @@ class Demo_WP {
 
 		if ( ! self::$instance->is_admin_user() ) {
 
-			$pages = apply_filters( 'dwp_prevent_access', array(
-				'themes.php',
-			) );
+			$pages = apply_filters( 'dwp_prevent_access', array( 'options.php' ) );
 
 			// Remove our menu links.
-			$menu_links = apply_filters( 'dwp_hide_menu_pages', array(
-				'plugins.php',
-				'users.php',
-				'tools.php',
-				'options-general.php',
-				'options.php',
-			) );
+			self::$instance->settings['parent_pages'][] = 'plugins.php';
+			self::$instance->settings['parent_pages'][] = 'demo-wp';
+			$menu_links = apply_filters( 'dwp_hide_menu_pages', self::$instance->settings['parent_pages'] );
 
-			$submenu_links = apply_filters( 'dwp_hide_submenu_pages', array(
-				array( 'parent' => 'index.php', 'child' => 'update-core.php' ),
-
-				array( 'parent' => 'themes.php', 'child' => 'theme-editor.php' ),
-				array( 'parent' => 'themes.php', 'child' => 'customize.php' ),
-				array( 'parent' => 'themes.php', 'child' => 'nav-menus.php' ),
-				array( 'parent' => 'themes.php', 'child' => 'custom-header' ),
-				array( 'parent' => 'themes.php', 'child' => 'custom-background' ),
-
-				array( 'parent' => 'users.php', 'child' => 'add-new.php' ),
-				array( 'parent' => 'users.php', 'child' => 'profile.php' ),
-
-				array( 'parent' => 'options-general.php', 'child' => 'options-writing.php' ),
-				array( 'parent' => 'options-general.php', 'child' => 'options-reading.php' ),
-				array( 'parent' => 'options-general.php', 'child' => 'options-discussion.php' ),
-				array( 'parent' => 'options-general.php', 'child' => 'options-media.php' ),
-				array( 'parent' => 'options-general.php', 'child' => 'options-permalink.php' ),
-				array( 'parent' => 'options-general.php', 'child' => 'limit-login-attempts' ),
-			) );
+			$submenu_links = apply_filters( 'dwp_hide_submenu_pages', self::$instance->settings['child_pages'] );
 
 			foreach( $menu_links as $page ) {
 				remove_menu_page( $page );
@@ -922,6 +954,23 @@ class Demo_WP {
 			$errors = ob_get_contents();
 			ob_end_clean();			
 		}
+	}
+
+	/**
+	 * Search an array recursively for a value
+	 * 
+	 * @access private
+	 * @since 1.0
+	 * @return string $key
+	 */
+	private function recursive_array_search( $needle, $haystack ) {
+	    foreach($haystack as $key=>$value) {
+	        $current_key=$key;
+	        if($needle===$value OR (is_array($value) && self::$instance->recursive_array_search($needle,$value) !== false)) {
+	            return $current_key;
+	        }
+	    }
+	    return false;
 	}
 }
 
