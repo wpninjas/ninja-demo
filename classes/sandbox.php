@@ -348,12 +348,12 @@ class Demo_WP_Sandbox {
 				Demo_WP()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'] );
 				$_SESSION['demo_wp_failed'] = 0;
 			}
-
+			// Remove our transient answer
 			delete_transient( $_POST['tid'] );
 
 			return false;
 		}
-		
+		// Remove our transient answer
 		delete_transient( $_POST['tid'] );	
 
 		$this->create_sandbox();
@@ -723,7 +723,7 @@ class Demo_WP_Sandbox {
 	}
 
 	/**
-	 * 	Add backqouotes to tables and db-names in SQL queries. Example from phpMyAdmin.
+	 * Add backqouotes to tables and db-names in SQL queries. Example from phpMyAdmin.
 	 * 
 	 * @access private
 	 * @since 1.0

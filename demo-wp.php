@@ -281,9 +281,9 @@ class Demo_WP {
 	 * @return string $key
 	 */
 	public function recursive_array_search( $needle, $haystack ) {
-	    foreach($haystack as $key=>$value) {
+	    foreach( $haystack as $key => $value ) {
 	        $current_key=$key;
-	        if($needle===$value OR (is_array($value) && self::$instance->recursive_array_search($needle,$value) !== false)) {
+	        if( $needle === $value OR ( is_array( $value ) && self::$instance->recursive_array_search( $needle,$value ) !== false ) ) {
 	            return $current_key;
 	        }
 	    }
