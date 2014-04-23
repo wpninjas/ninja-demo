@@ -292,7 +292,7 @@ class Demo_WP_Sandbox {
 	public function create_sandbox_check() {
 
 		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
-		if ( isset ( $_SESSION['demo_wp_sandbox'] ) ) {
+		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
 			$details = get_blog_details( $_SESSION['demo_wp_sandbox'] );
 			if ( $details === false ) {
 				unset( $_SESSION['demo_wp_sandbox'] );
