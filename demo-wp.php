@@ -22,6 +22,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+Portions of this plugin are derived from NS Cloner, which is released under the GPL2.
+These unmodified sections are Copywritten 2012 Never Settle
 */
 
 // Exit if accessed directly
@@ -37,6 +40,11 @@ class Demo_WP {
 	private static $instance;
 
 	/**
+	 * @var Class Globals
+	 */
+	var $settings;
+
+	/**
 	 * Main Demo_WP Instance
 	 *
 	 * Insures that only one instance of Demo_WP exists in memory at any one
@@ -50,10 +58,22 @@ class Demo_WP {
 	public static function instance() {
 		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Demo_WP ) ) {
 			self::$instance = new Demo_WP;
-			
-			
+			self::$instance->setup_constants();
+			self::$instance->get_settings();
+			self::$instance->includes();
 
-			//register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
+			self::$instance->admin_settings = new Demo_WP_Admin();
+			self::$instance->sandbox = new Demo_WP_Sandbox();
+			self::$instance->restrictions = new Demo_WP_Restrictions();
+			self::$instance->logs = new Demo_WP_Logs();
+			self::$instance->shortcodes = new Demo_WP_Shortcodes();
+			self::$instance->ip = new Demo_WP_IP_Lockout();
+			
+			//add_action( 'admin_bar_menu', array( self::$instance, 'add_menu_bar_reset' ), 999 );
+
+			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
+
+			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 		}
 		return self::$instance;
 	}
@@ -116,153 +136,73 @@ class Demo_WP {
 	}
 
 	/**
-	 * Add admin menu page
-	 * 
-	 * @access public
+	 * Get our plugin settings
+	 *
+	 * @access private
 	 * @since 1.0
 	 * @return void
 	 */
-	public function add_menu_page() {
-		$page = add_menu_page("Demo Site" , __( 'Demo Site', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_options' ), "demo-wp", array( self::$instance, "output_admin_page" ), "", "32.1337" );
+	private function get_settings() {
+		$settings = get_blog_option( 1, 'demo_wp' );
+		self::$instance->settings = $settings;
 	}
 
 	/**
-	 * Output the admin menu page
+	 * Include our Class files
 	 * 
-	 * @access public
+	 * @access private
 	 * @since 1.0
 	 * @return void
 	 */
-	public function output_admin_page() {
-		global $menu, $submenu;
-
-		?>
-		<form id="demo_wp_admin" enctype="multipart/form-data" method="post" name="" action="">
-			<input type="hidden" name="demo_wp_submit" value="1">
-			<?php wp_nonce_field('demo_wp_save','demo_wp_admin_submit'); ?>
-			<div class="wrap">
-				<h2 class="nav-tab-wrapper">
-					<span class="nav-tab nav-tab-active"><?php _e( 'Settings', 'demo-wp' ); ?></span>
-				</h2>
-				<!--
-				<div id="message" class="updated below-h2">
-					<p>
-						Updated
-					</p>
-				</div>
-				-->
-				<div id="poststuff">
-					<div id="post-body">
-						<div id="post-body-content">
-							<div>
-								Hello World!
-							</div>
-					
-						</div><!-- /#post-body-content -->
-					</div><!-- /#post-body -->
-				</div>
-			</div>
-		<!-- </div>/.wrap-->
-		</form>
-		<?php
+	private function includes() {
+		require_once( DEMO_WP_DIR . 'classes/admin.php' );
+		require_once( DEMO_WP_DIR . 'classes/sandbox.php' );
+		require_once( DEMO_WP_DIR . 'classes/restrictions.php' );
+		require_once( DEMO_WP_DIR . 'classes/logs.php' );
+		require_once( DEMO_WP_DIR . 'classes/shortcodes.php' );
+		require_once( DEMO_WP_DIR . 'classes/ip-lockout.php' );
 	}
 
 	/**
-	 * Save our admin page
-	 * 
+	 * Update our plugin settings
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
-	public function save_admin_page() {
-		global $menu, $submenu;
-		if ( self::$instance->is_admin_user() ) {
-			if ( isset ( $_POST['demo_wp_admin_submit'] ) ) {
-				$nonce = $_POST['demo_wp_admin_submit'];
-			} else {
-				$nonce = '';
-			}
-
-			if ( isset ( $_POST['demo_wp_submit'] ) && $_POST['demo_wp_submit'] == 1 && wp_verify_nonce( $nonce, 'demo_wp_save' ) ) {
-				// Check to see if we've hit the freeze or thaw button
-				if ( isset ( $_POST['demo_wp_freeze'] ) ) {
-					self::$instance->freeze();
-				} else if ( isset ( $_POST['demo_wp_thaw'] ) ) {
-					self::$instance->thaw();
-				} else if ( isset ( $_POST['demo_wp_restore'] ) ) {
-					// Purge our WP Engine Cache
-					self::$instance->purge_wpengine_cache();
-					self::$instance->restore_folders();
-					self::$instance->restore_db();
-				} else if ( isset ( $_POST['demo_wp_settings'] ) ) {
-					// Thaw our db if it isn't already
-					$frozen = false;
-					if ( self::$instance->settings['state'] == 'frozen' ) {
-						$frozen = true;
-						self::$instance->thaw();
-					}
-
-					if ( isset ( $_POST['demo_wp_schedule'] ) ) {
-						self::$instance->settings['schedule'] = $_POST['demo_wp_schedule'];
-						// Remove our scheduled task that restores the database
-						wp_clear_scheduled_hook( 'demo_wp_restore' );
-						// Setup our scheduled task to restore the database
-						wp_schedule_event( time(), self::$instance->settings['schedule'], 'demo_wp_restore' );
-					}
-
-					if ( isset ( $_POST['demo_wp_folders'] ) ) {
-						$folders = $_POST['demo_wp_folders'];
-						$folders = join( "\n", array_map( "trim", explode( "\n", $folders ) ) );
-						self::$instance->settings['folders'] = $folders;
-					}
-
-					if ( isset ( $_POST['demo_wp_parent_pages'] ) ) {
-						// if ( $_POST['demo_wp_parent_pages'] == '' ) {
-						// 	$_POST['demo_wp_parent_pages'] = array();
-						// }
-						self::$instance->settings['parent_pages'] = $_POST['demo_wp_parent_pages'];
-					}
-
-					if ( isset ( $_POST['demo_wp_child_pages'] ) ) {
-						$child_pages = array();
-						foreach( $_POST['demo_wp_child_pages'] as $page ) {
-							$key = self::$instance->recursive_array_search( $page, $submenu );
-							$child_pages[] = array( 'parent' => $key, 'child' => $page );
-						}
-						self::$instance->settings['child_pages'] = $child_pages;
-					}
-
-					self::$instance->update_settings( self::$instance->settings );
-	
-					if ( $frozen )
-						self::$instance->freeze();
-				}
-			}
-		}
+	public function update_settings( $args ) {
+		self::$instance->settings = $args;
+		update_option( 'demo_wp', $args );
 	}
 
 	/**
-	 * Clear out the contents of our watched folders
+	 * Enqueue our display (front-end) CSS
 	 * 
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
-	public function delete_folder_contents( $dir ) {
-		// Bail if we aren't sent a directory
-		if ( !is_dir( $dir ) )
-			return false;
-        foreach( scandir( $dir ) as $file ) {
-            if ( '.' === $file || '..' === $file )
-                continue;
-            $dir = trailingslashit( $dir );
-            if ( is_dir( $dir . $file ) ) {
-               self::$instance->delete_folder_contents( $dir . $file );
-            } else {
-                unlink( $dir . $file );
-            }
-        }
-        rmdir( $dir );
+	public function display_css() {
+		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/display.css');
+	}
+
+	/**
+	 * Generate a random alphanumeric string
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return string $string
+	 */
+	public function random_string( $length = 15 ) {
+		$string = '';
+	    $keys = array_merge( range(0, 9), range('a', 'z') );
+
+	    for ( $i = 0; $i < $length; $i++ ) {
+	        $string .= $keys[ array_rand( $keys ) ];
+	    }
+
+	    $string = sanitize_title_with_dashes( $string );
+	    return $string;
 	}
 
 	/**
@@ -274,88 +214,44 @@ class Demo_WP {
 	 */
 	public function activation() {
 		if ( get_option( 'demo_wp' ) == false ) {
-			
+			$args = array(
+				'offline' 			=> 0,
+				'prevent_clones' 	=> 0,
+				'log'				=> 0,
+				'lifespan'			=> 3600,
+				'parent_pages'		=> array(),
+				'child_pages'		=> array(),
+				'admin_id' 			=> get_current_user_id(),
+			);
+			update_option( 'demo_wp', $args );
 		}
+		wp_schedule_event( time(), 'hourly', 'dwp_hourly' );
 	}
 
 	/**
-	 * Prevent the user from visiting various pages
+	 * Add an item to the menu bar for non-network admin users that allows them to reset their sandbox
 	 * 
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
-	public function remove_pages() {
-		global $pagenow;
-
-		if ( ! self::$instance->is_admin_user() ) {
-
-			$pages = apply_filters( 'dwp_prevent_access', array( 'options.php' ) );
-
-			// Remove our menu links.
-			self::$instance->settings['parent_pages'][] = 'plugins.php';
-			self::$instance->settings['parent_pages'][] = 'demo-wp';
-			$menu_links = apply_filters( 'dwp_hide_menu_pages', self::$instance->settings['parent_pages'] );
-
-			$submenu_links = apply_filters( 'dwp_hide_submenu_pages', self::$instance->settings['child_pages'] );
-
-			foreach( $menu_links as $page ) {
-				remove_menu_page( $page );
-				$pages[] = $page;
-			}
-
-			foreach( $submenu_links as $page ) {
-				remove_submenu_page( $page['parent'], $page['child'] );
-				$pages[] = $page['child'];
-			}
-
-  			// If we are on any of these pages, then throw an error.
-  			if ( in_array( $pagenow, $pages ) || ( isset ( $_REQUEST['page'] ) && in_array( $_REQUEST['page'], $pages ) ) )
-  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
-		}
-	}
-
-	/**
-	 * Disable the password field on our profile page if this isn't the admin user.
-	 * 
-	 * @access public
-	 * @since 1.0
-	 * @return void
-	 */
-	public function disable_passwords() {
-		if ( ! self::$instance->is_admin_user() )
-			return false;
-		return true;
-	}
-
-	/**
-	 * Remove the email address from the profile page if this isn't the admin user.
-	 * 
-	 * @access public
-	 * @since 1.0
-	 * @return void
-	 */
-	public function disable_email( $user_id ) {
-		$user_info = get_userdata( $user_id );
-
-		if ( ! self::$instance->is_admin_user() )
-			$_POST['first_name'] = $user_info->user_firstname;
-			$_POST['last_name'] = $user_info->user_lastname;
-			$_POST['nickname'] = $user_info->nickname;
-			$_POST['display_name'] = $user_info->display_name;
-			$_POST['email'] = $user_info->user_email;
+	public function add_menu_bar_reset( $wp_admin_bar ) {
+		$wp_admin_bar->add_menu( array(
+	        'id'   => 'reset-site',
+	        'meta' => array(),
+	        'title' => __( 'Reset Site Content', 'demo-wp' ),
+	        'href' => 'http://www.cnn.com' ) );
 	}
 
 	/**
 	 * Check to see if the current user is our admin user
 	 * 
-	 * @access private
+	 * @access public
 	 * @since 1.0
 	 * @return bool
 	 */
-	private function is_admin_user() {
-		$user_id = get_current_user_id();
-		return self::$instance->settings['user'] == $user_id;
+	public function is_admin_user() {
+		return current_user_can( 'manage_network_options' );
 	}
 
 	/**
@@ -375,6 +271,23 @@ class Demo_WP {
 			$errors = ob_get_contents();
 			ob_end_clean();			
 		}
+	}
+
+	/**
+	 * Search an array recursively for a value
+	 *
+	 * @access public
+	 * @since 1.0
+	 * @return string $key
+	 */
+	public function recursive_array_search( $needle, $haystack ) {
+	    foreach($haystack as $key=>$value) {
+	        $current_key=$key;
+	        if($needle===$value OR (is_array($value) && self::$instance->recursive_array_search($needle,$value) !== false)) {
+	            return $current_key;
+	        }
+	    }
+	    return false;
 	}
 }
 
