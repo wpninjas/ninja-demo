@@ -125,7 +125,7 @@ class Demo_WP_Shortcodes {
 	}
 
 	/**
-	 * Generate our anti-spam question and store the answer in a transient that will expire in thirty minutes
+	 * Generate our anti-spam question
 	 * 
 	 * @since 1.0
 	 * @access private

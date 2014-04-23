@@ -348,11 +348,13 @@ class Demo_WP_Sandbox {
 				Demo_WP()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'] );
 				$_SESSION['demo_wp_failed'] = 0;
 			}
-			
+
+			delete_transient( $_POST['tid'] );
+
 			return false;
 		}
-
-		delete_transient( $_POST['tid'] );
+		
+		delete_transient( $_POST['tid'] );	
 
 		$this->create_sandbox();
 	}
