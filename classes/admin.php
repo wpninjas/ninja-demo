@@ -156,23 +156,6 @@ class Demo_WP_Admin {
 							</tbody>
 							</table>
 
-							<h2><?php _e( 'Debug Settings', 'demo-wp' ); ?></h2>
-							<table class="form-table">
-							<tbody>
-								<tr>
-									<th scope="row">
-										<?php _e( 'Enable Logging', 'demo-wp' ); ?>
-									</th>
-									<td>
-										<fieldset>
-											<input type="hidden" name="log" value="0">
-											<label><input type="checkbox" name="log" value="1" <?php checked( 1, Demo_WP()->settings['log'] ); ?>> <?php _e( 'Create a log file every time a sandbox is created. (Useful for debugging, but can generate lots of files.)', 'demo-wp' ); ?></label>
-										</fieldset>
-									</td>
-								</tr>
-							</tbody>
-							</table>
-
 							<h2><?php _e( 'Restriction Settings', 'demo-wp' ); ?></h2>
 							<h3><?php _e( 'Prevent users from accessing these pages', 'demo-wp' ); ?></h3>
 							<div class="dwp-admin-restrict">
@@ -232,6 +215,23 @@ class Demo_WP_Admin {
 							}
 							?>
 							</div>
+
+							<h2><?php _e( 'Debug Settings', 'demo-wp' ); ?></h2>
+							<table class="form-table">
+							<tbody>
+								<tr>
+									<th scope="row">
+										<?php _e( 'Enable Logging', 'demo-wp' ); ?>
+									</th>
+									<td>
+										<fieldset>
+											<input type="hidden" name="log" value="0">
+											<label><input type="checkbox" name="log" value="1" <?php checked( 1, Demo_WP()->settings['log'] ); ?>> <?php _e( 'Create a log file every time a sandbox is created. (Useful for debugging, but can generate lots of files.)', 'demo-wp' ); ?></label>
+										</fieldset>
+									</td>
+								</tr>
+							</tbody>
+							</table>
 							<div>
 								<input class="button-primary" name="demo_wp_settings" type="submit" value="<?php _e( 'Save', 'demo-wp' ); ?>" />
 							</div>
