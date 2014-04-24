@@ -1,4 +1,9 @@
 <?php
+add_filter( 'widget_text', 'do_shortcode' );
+function dwp_add_shortcode_widget() {
+    add_filter( 'widget_text', 'do_shortcode' );
+}
+//add_action( 'wp', 'dwp_add_shortcode_widget' );
 
 function dwp_create_sandbox_actions( $blog_id ) {
     // This set's the option to discourage search engines from indexing sandboxes within a demo.

@@ -43,7 +43,7 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'dwp_hourly', array( $this, 'purge_sandboxes' ) );
+		add_action( 'init', array( $this, 'purge_sandboxes' ) );
 		add_action( 'init', array( $this, 'create_sandbox_check' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 
