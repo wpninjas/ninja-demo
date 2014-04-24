@@ -1,3 +1,24 @@
 .demo-wp-hidden {
 	display:none;
 }
+
+.dwp-start-demo {
+    background: #fff;
+    margin: 0 auto;
+    padding: 20px 20px 0;
+    width: 400px;
+}
+.dwp-answer-field {
+    display: block;
+    margin-bottom: 10px;
+    text-align: center;
+}
+.dwp-answer-field input {
+    padding: 5px;
+    width: 50px;
+}
+
+.dwp-start-demo-form input[type=submit] {
+    font-size: 22px;
+    width: 100%;
+}

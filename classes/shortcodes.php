@@ -17,7 +17,7 @@ class Demo_WP_Shortcodes {
 
 	/**
 	 * Get things started
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -28,7 +28,7 @@ class Demo_WP_Shortcodes {
 
 	/**
 	 * Shortcode function that outputs a button for users to try the demo/create a new sandbox.
-	 * 
+	 *
 	 * @since 1.0
 	 * @access public
 	 * @return void
@@ -46,20 +46,20 @@ class Demo_WP_Shortcodes {
 		}
 
 		ob_start();
-		
+		if ( is_main_site() ) {
 		?>
 		<a id="demo-wp"></a>
-		<div class="wrap">
+		<div class="dwp-start-demo">
 			<?php
-			// Check to 
+			// Check to
 			if ( ! $ip_lockout ) {
 				?>
-				<form action="#demo-wp" method="post" enctype="multipart/form-data">
+				<form action="#demo-wp" method="post" enctype="multipart/form-data" class="dwp-start-demo-form">
 					<?php wp_nonce_field( 'demo_wp_create_sandbox','demo_wp_sandbox' ); ?>
 					<input name="dwp_create_sandbox" type="hidden" value="1">
 					<input name="tid" type="hidden" value="<?php echo $tid; ?>">
 					<div>
-						<label><?php echo $spam_q; ?><input name="spam_a"></label>
+						<label class="dwp-answer-field"><?php echo _e( 'What does ', 'demo-wp' ) . $spam_q; ?><input type="number" name="spam_a"></label>
 						<?php
 						if ( isset ( $_POST['spam_a'] ) && $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
 						?>
@@ -67,12 +67,12 @@ class Demo_WP_Shortcodes {
 								<?php _e( 'Incorrect answer. Please try again.', 'demo-wp' ); ?>
 							</div>
 							<div>
-								<?php 		
+								<?php
 								if ( $tries == 1 ) {
 									printf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'demo-wp' ), $tries );
 								} else {
 									printf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'demo-wp' ), $tries );
-								} 
+								}
 								?>
 							</div>
 						<?php
@@ -99,13 +99,13 @@ class Demo_WP_Shortcodes {
 					$expires = 1;
 				}
 				printf( __( 'Your IP address is currently locked out for %d minute.', 'demo-wp' ), $expires );
-				
+
 				if ( $expires == 1 ) {
 					printf( __( 'Your IP address is currently locked out for %d minute.', 'demo-wp' ), $expires );
 				} else {
 					printf( __( 'Your IP address is currently locked out for %d minutes.', 'demo-wp' ), $expires );
 				}
-				
+
 				?>
 				<h4><?php
 				if ( $expires == 1 ) {
@@ -113,20 +113,21 @@ class Demo_WP_Shortcodes {
 				} else {
 					printf( __( 'Your IP address is currently locked out for %d minutes.', 'demo-wp' ), $expires );
 				}
-				
+
 				?></h4>
 				<?php
 			}
 			?>
 		</div>
 		<?php
+		} // End is_main_site check
 		$return = ob_get_clean();
 		return $return;
 	}
 
 	/**
 	 * Generate our anti-spam question
-	 * 
+	 *
 	 * @since 1.0
 	 * @access private
 	 * @return string $eq Our anti-spam equation
@@ -146,7 +147,7 @@ class Demo_WP_Shortcodes {
 
 	/**
 	 * Return the answer to our generated anti-spam question
-	 * 
+	 *
 	 * @since 1.0
 	 * @access private
 	 * @return string $answer
@@ -155,14 +156,14 @@ class Demo_WP_Shortcodes {
 		$eq = trim($eq);     // trim white spaces
 		$eq = str_replace( '=', '', $eq );
 	    $eq = preg_replace ('[^0-9\+-\*\/\(\) ]', '', $eq);    // remove any non-numbers chars; exception for math operators
-	 	
+
 	    $compute = create_function("", "return (" . $eq . ");" );
 	    return 0 + $compute();
 	}
 
 	/**
 	 * Store our anti-spam answer in a transient and return the transient ID
-	 * 
+	 *
 	 * @since 1.0
 	 * @access private
 	 * @return string $tid Our transient ID

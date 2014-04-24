@@ -68,7 +68,7 @@ class Demo_WP {
 			self::$instance->logs = new Demo_WP_Logs();
 			self::$instance->shortcodes = new Demo_WP_Shortcodes();
 			self::$instance->ip = new Demo_WP_IP_Lockout();
-			
+
 			//add_action( 'admin_bar_menu', array( self::$instance, 'add_menu_bar_reset' ), 999 );
 
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
@@ -113,7 +113,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function setup_constants() {
-		
+
 		// Plugin version
 		if ( ! defined( 'DEMO_WP_VERSION' ) ) {
 			define( 'DEMO_WP_VERSION', '1.0' );
@@ -149,7 +149,7 @@ class Demo_WP {
 
 	/**
 	 * Include our Class files
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -161,6 +161,8 @@ class Demo_WP {
 		require_once( DEMO_WP_DIR . 'classes/logs.php' );
 		require_once( DEMO_WP_DIR . 'classes/shortcodes.php' );
 		require_once( DEMO_WP_DIR . 'classes/ip-lockout.php' );
+
+		require_once( DEMO_WP_DIR . 'functions/create-sandbox.php' );
 	}
 
 	/**
@@ -177,7 +179,7 @@ class Demo_WP {
 
 	/**
 	 * Enqueue our display (front-end) CSS
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -188,7 +190,7 @@ class Demo_WP {
 
 	/**
 	 * Generate a random alphanumeric string
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return string $string
@@ -207,7 +209,7 @@ class Demo_WP {
 
 	/**
 	 * Upon activation, setup our super admin
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -230,7 +232,7 @@ class Demo_WP {
 
 	/**
 	 * Add an item to the menu bar for non-network admin users that allows them to reset their sandbox
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -245,7 +247,7 @@ class Demo_WP {
 
 	/**
 	 * Check to see if the current user is our admin user
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return bool
@@ -256,7 +258,7 @@ class Demo_WP {
 
 	/**
 	 * Purge WPengine cache when we restore the database.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -269,7 +271,7 @@ class Demo_WP {
 			WpeCommon::purge_varnish_cache();  // refresh our own cache (after CDN purge, in case that needed to clear before we access new content)
 			WpeCommon::empty_all_caches();
 			$errors = ob_get_contents();
-			ob_end_clean();			
+			ob_end_clean();
 		}
 	}
 

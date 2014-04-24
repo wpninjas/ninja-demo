@@ -9,7 +9,7 @@
  * @copyright   Copyright (c) 2014, WP Ninjas
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
  * @since       1.0
- * 
+ *
  * Portions of this file are derived from NS Cloner, which is released under the GPL2.
  * These unmodified sections are Copywritten 2012 Never Settle
  */
@@ -37,7 +37,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Get things started
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -59,7 +59,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Check to see if we have disabled clone creation. If so, disable the main site, leaving sandboxes alone
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -71,7 +71,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Count our current sandboxes
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return int $count
@@ -85,7 +85,7 @@ class Demo_WP_Sandbox {
 	        AND spam = '0'
 	        AND deleted = '0'
 	        AND archived = '0'
-	        AND blog_id != 1" 
+	        AND blog_id != 1"
 	    );
 	    $count = count( $blogs );
 		return $count;
@@ -93,7 +93,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Delete all sandboxes
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -108,7 +108,7 @@ class Demo_WP_Sandbox {
 	        AND spam = '0'
 	        AND deleted = '0'
 	        AND archived = '0'
-	        AND blog_id != 1" 
+	        AND blog_id != 1"
 	    );
 	    foreach ( $blogs as $blog ) {
 	    	$this->delete_sandbox( $blog->blog_id, true );
@@ -117,7 +117,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Delete a sandbox
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -130,7 +130,7 @@ class Demo_WP_Sandbox {
 			$switch = true;
 			switch_to_blog( $blog_id );
 		}			   		// Grab all the tables that have our prefix.
-   		
+
 		$blog = get_blog_details( $blog_id );
 		/**
 		 * Fires before a blog is deleted.
@@ -241,14 +241,14 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Check to see if any of our sandboxes needs to be purged.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
 	public function purge_sandboxes() {
 		global $wpdb;
-		
+
 		// Get a list of all of our sandboxes
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
@@ -258,7 +258,7 @@ class Demo_WP_Sandbox {
 	        AND deleted = '0'
 	        AND archived = '0'
 	        AND blog_id != 1" );
-	 
+
 	    $sites = array();
 	    $redirect = false;
 	    foreach ( $blogs as $blog ) {
@@ -284,7 +284,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Check to see if we should create a sandbox
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -354,26 +354,26 @@ class Demo_WP_Sandbox {
 			return false;
 		}
 		// Remove our transient answer
-		delete_transient( $_POST['tid'] );	
+		delete_transient( $_POST['tid'] );
 
 		$this->create_sandbox();
 	}
 
 	/**
 	 * Create our sandbox
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
 	 */
 	private function create_sandbox() {
 		global $wpdb, $report, $count_tables_checked, $count_items_checked, $count_items_changed, $current_site, $wp_version;
-	
+
 		// Declare the locals that need to be available throughout the function:
 		$target_id = '';
 		$target_subd = '';
 		$target_site = '';
-		
+
 
 		//  Start TIMER
 		//  -----------
@@ -384,7 +384,7 @@ class Demo_WP_Sandbox {
 		$source_id = 1;
 		$target_site = get_blog_details( $source_id )->blogname;
 		$target_site_name = $this->generate_site_name();
-		
+
 		// CREATE THE SITE
 
 		// Create site
@@ -392,46 +392,46 @@ class Demo_WP_Sandbox {
 
 		// Start compiling data for success message
 		$site_address = get_blog_details( $this->target_id )->siteurl;
-		// $this->status = $this->status . 'Created site <a href="'.$site_address.'" target="_blank">'; 
-		// $this->status = $this->status . '<b>'.$site_address.'</b></a> with ID: <b>' . $this->target_id . '</b><br />';	
-		
-		
+		// $this->status = $this->status . 'Created site <a href="'.$site_address.'" target="_blank">';
+		// $this->status = $this->status . '<b>'.$site_address.'</b></a> with ID: <b>' . $this->target_id . '</b><br />';
+
+
 		// RUN THE CLONING
 		Demo_WP()->logs->dlog( 'RUNNING NS Cloner version: ' . DEMO_WP_VERSION . ' <br /><br />' );
-		
+
 		// don't want the trailing slash in path just in case there are replacements that don't have it
 		$source_subd = untrailingslashit( get_blog_details($source_id)->domain . get_blog_details($source_id)->path );
-		
+
 		$source_site = get_blog_details($source_id)->blogname;
-		
+
 		$target_id = $this->target_id;
 		$target_subd = get_current_site()->domain . get_current_site()->path . $target_site_name;
 
 		if ( $source_id == '' || $source_subd == '' || $source_site == '' || $target_id == '' || $target_subd == '' || $target_site == '') {
 			// Clear the querystring and add the results
-			wp_redirect( add_query_arg( 
-				array('error' => 'true', 
-					  'errormsg' => urlencode( __( 'You must fill out all fields in Cloning section. Otherwise unsafe operation.', 'ns_cloner' ) ), 
-					  'updated' => false), 
-				wp_get_referer() ) ); 
+			wp_redirect( add_query_arg(
+				array('error' => 'true',
+					  'errormsg' => urlencode( __( 'You must fill out all fields in Cloning section. Otherwise unsafe operation.', 'ns_cloner' ) ),
+					  'updated' => false),
+				wp_get_referer() ) );
 			die;
 		}
 		// prevent the source site name from being contained in the target domain / directory, since the search/replaces will wreak havoc in that scenario
 		elseif( stripos($target_subd, $source_site) !== false ) {
-				wp_redirect( add_query_arg( 
-					array('error' => 'true', 
-						  'errormsg' => urlencode( __( "The Source Site Name ($source_site) may not appear in the Target Site Domain ($target_subd) or data corruption will occur. You might need to edit the Source Site's Name in Settings > General, or double-check / change your field input values.", 'ns_cloner' ) ), 
-						  'updated' => false), 
-					wp_get_referer() ) ); 
+				wp_redirect( add_query_arg(
+					array('error' => 'true',
+						  'errormsg' => urlencode( __( "The Source Site Name ($source_site) may not appear in the Target Site Domain ($target_subd) or data corruption will occur. You might need to edit the Source Site's Name in Settings > General, or double-check / change your field input values.", 'ns_cloner' ) ),
+						  'updated' => false),
+					wp_get_referer() ) );
 				die;
 		} else{
 			//configure all the properties
 			$source_pre = $source_id==1? $wpdb->base_prefix : $wpdb->base_prefix . $source_id . '_';	// the wp id of the source database
 			$target_pre = $wpdb->base_prefix . $target_id . '_';	// the wp id of the target database
-			
+
 			Demo_WP()->logs->dlog ( 'Source Prefix: <b>' . $source_pre . '</b><br />' );
 			Demo_WP()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
-			
+
 			// Add support for ThreeWP Broadcast plugin
 			// Thank you John @ propanestudio.com and Aamir
 			// getting already added broad cast id of source id from database
@@ -447,25 +447,25 @@ class Demo_WP_Sandbox {
 						Demo_WP()->logs->dlog ( 'Adding ThreeWPBroadcast data: <b>' . print_r($enc,true) . '</b><br />' ); //log data
 						$enc['linked_children'][$target_id]=$r['post_id']; // merge newly added site id and post id unserlize data
 						$enc=base64_encode(serialize($enc)); // again serlize this and decode this and save into db
-						$wpdb->query('UPDATE '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET data="'.$enc.'" where blog_id='.$pushdata.'');							
+						$wpdb->query('UPDATE '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET data="'.$enc.'" where blog_id='.$pushdata.'');
 					}
 					// add child elemnts of broad cast for new site id
 					$wpdb->query('INSERT into '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET blog_id='.$target_id.',post_id='.$r['post_id'].',data="'.$r['data'].'"');
 				}
 			}
-			
+
 			//clone
 			$this->run_clone($source_pre, $target_pre);
-		}			
-		
-		// RUN THE STANDARD REPLACEMENTS 
+		}
+
+		// RUN THE STANDARD REPLACEMENTS
 		$target_pre = $wpdb->base_prefix . $target_id . '_';	// the wp id of the target database
-				
+
 		//build replacement array
 		//new-site-specific replacements
 		$replace_array[$source_subd] = $target_subd;
 		$replace_array[$source_site] = $target_site;
-		
+
 		// REPLACEMENTS FOR ROOT SITE CLONING
 		// uploads location
 		$main_uploads_target = '';
@@ -475,7 +475,7 @@ class Demo_WP_Sandbox {
 			restore_current_blog();
 			$main_uploads_dir = str_replace( get_site_url('/'), '', $main_uploads_info['baseurl'] );
 			$main_uploads_replace = '';
-			// can't do it this way because the condition should NOT just be based on WP version. 
+			// can't do it this way because the condition should NOT just be based on WP version.
 			// it has to be checked against what the ORIGINAL version of wpmu was installed then upgraded
 			// our get_upload_folder() does this
 			//---
@@ -498,15 +498,15 @@ class Demo_WP_Sandbox {
 			// --------------------------------------
 			//reset the option_name = wp_#_user_roles row in the wp_#_options table back to the id of the target site
 			$replace_array[$wpdb->base_prefix . 'user_roles'] = $wpdb->base_prefix . $target_id . '_user_roles';
-		}				
-		
+		}
+
 		//replace
 		Demo_WP()->logs->dlog ( 'running replace on Target table prefix: ' . $target_pre . '<br />' );
 		foreach( $replace_array as $search_for => $replace_with) {
 			Demo_WP()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
 		}
 		$this->run_replace($target_pre, $replace_array);
-		
+
 		// COPY ALL MEDIA FILES
 		// get the right paths to use
 		// handle for uploads location when cloning root site
@@ -517,15 +517,15 @@ class Demo_WP_Sandbox {
 		else {
 			$dst_blogs_dir = $this->get_upload_folder($this->target_id);
 		}
-		
+
 		// Fix file dir when cloning root directory
 		// Fix some instances where physical paths have numbers in them
 		// Thank you, Christian for the catch!
-		//$dst_blogs_dir = str_replace($source_id, $target_id, $src_blogs_dir );				
+		//$dst_blogs_dir = str_replace($source_id, $target_id, $src_blogs_dir );
 		//$dst_blogs_dir = str_replace( '/' . $source_id, '/' . $target_id, $src_blogs_dir );
 		// moved up in the conditional
 		//$dst_blogs_dir = $this->get_upload_folder($this->target_id);
-		
+
 		//fix for paths on windows systems
 		if (strpos($src_blogs_dir,'/') !== false && strpos($src_blogs_dir,'\\') !== false ) {
 			$src_blogs_dir = str_replace('/', '\\', $src_blogs_dir);
@@ -538,7 +538,7 @@ class Demo_WP_Sandbox {
 			//$report .= 'From: <b>' . $src_blogs_dir . '</b><br />';
 			//$report .= 'To: <b>' . $dst_blogs_dir . '</b><br />';
 			//--------------------------------------------------------------------------
-				
+
 			$num_files = $this->recursive_file_copy($src_blogs_dir, $dst_blogs_dir, 0);
 			$report .= 'Copied: <b>' . $num_files . '</b> folders and files!<br />';
 			Demo_WP()->logs->dlog ('Copied: <b>' . $num_files . '</b> folders and files!<br />');
@@ -548,7 +548,7 @@ class Demo_WP_Sandbox {
 		else {
 			$report .= '<span class="warning-txt-title">Could not copy files</span><br />';
 			$report .= 'From: <b>' . $src_blogs_dir . '</b><br />';
-			$report .= 'To: <b>' . $dst_blogs_dir . '</b><br />';	
+			$report .= 'To: <b>' . $dst_blogs_dir . '</b><br />';
 		}
 		// ---------------------------------------------------------------------------------------------------------------
 		// Report
@@ -564,22 +564,25 @@ class Demo_WP_Sandbox {
 		Demo_WP()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//echo '</p>';
 		//  ---------
-		
+
 		// Report on what was accomplished
 		// $this->status = $this->status . $report . "Entire cloning process took: <strong>" . number_format(($etimer-$stimer), 4) . "</strong> seconds... <br />";
 		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->log_file_url . '" target="_blank">Historical Log</a> || ';
 		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->detail_log_file_url . '" target="_blank">Detailed Log</a> ';
-		
+
 		// Save status for display on next page
 		// $_SESSION['cloner_status'] = $this->status;
 		$_SESSION['demo_wp_sandbox'] = $this->target_id;
-		wp_redirect( $site_address ); 
+
+		do_action( 'dwp_create_sandbox', $this->target_id );
+
+		wp_redirect( $site_address );
 		die;
 	}
 
 	/**
 	 * Return a random alphanumeric string to serve as our site name.
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return string $key
@@ -598,7 +601,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Create a site for our sandbox
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -620,14 +623,14 @@ class Demo_WP_Sandbox {
 			$tmp_site_domain = $current_site->domain;
 			$tmp_site_path = $base . $tmp_domain . '/';
 		}
-		
+
 		$create_site_name = $sitename;
 		$create_site_title = $sitetitle;
-						
+
 		$user_id = Demo_WP()->settings['admin_id'];
-	
+
 		$site_id = get_id_from_blogname( $create_site_name );
-		
+
 		// create site and don't forget to make public:
 		$meta['public'] = 1;
 		$site_id = wpmu_create_blog( $tmp_site_domain, $tmp_site_path, $create_site_title, $user_id , $meta, $current_site->id );
@@ -641,7 +644,7 @@ class Demo_WP_Sandbox {
 		} else {
 			Demo_WP()->logs->log( 'Error creating site: ' . $tmp_site_domain . $tmp_site_path . ' - ' . $site_id->get_error_message() );
 		}
-		
+
 		$users = get_users( 1 );
 		if ( is_array( $users ) ) {
 			foreach ( $users as $user ) {
@@ -652,7 +655,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Clone the data from our main site to our newly created sandbox site
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -660,11 +663,11 @@ class Demo_WP_Sandbox {
 
 	private function run_clone( $source_prefix, $target_prefix ) {
 		global $report, $wpdb;
-		
+
 		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
-	
+
 		mysqli_set_charset( $cid, DB_CHARSET );
-		
+
 		//get list of source tables when cloning root
 		if($source_prefix==$wpdb->base_prefix){
 			$tables = $wpdb->get_results('SHOW TABLES');
@@ -682,15 +685,15 @@ class Demo_WP_Sandbox {
 		}
 		//get list of source tables when cloning non-root
 		else{
-			// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard 
+			// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard
 			// single chars in LIKE statement and can really hose up the database
 			$SQL = 'SHOW TABLES LIKE \'' . str_replace('_','\_',$source_prefix) . '%\'';
 		}
-		
+
 		$tables_list = mysqli_query( $cid, $SQL );
 
 		$num_tables = 0;
-		
+
 		if ($tables_list != false) {
 			while ( $tables = mysqli_fetch_array( $tables_list ) ) {
 				$source_table = $tables[0];
@@ -700,13 +703,13 @@ class Demo_WP_Sandbox {
 				//run cloning on current table to target table
 				if ($source_table != $target_table) {
 					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
-					Demo_WP()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );	
+					Demo_WP()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
 					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
 					$this->clone_table($source_table, $target_table);
 				}
 				else {
 					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
-					Demo_WP()->logs->dlog ( 'Source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') and Target table: <b>' . $target_table . ' are the same! SKIPPING!!!</b><br />');	
+					Demo_WP()->logs->dlog ( 'Source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') and Target table: <b>' . $target_table . ' are the same! SKIPPING!!!</b><br />');
 					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 				}
 			}
@@ -714,21 +717,21 @@ class Demo_WP_Sandbox {
 		else {
 			Demo_WP()->logs->dlog ( 'no data for sql - ' . $SQL );
 		}
-		
+
 		if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br /><br />'); }
 		$report .= 'Cloned: <b>' .$num_tables . '</b> tables!<br/ >';
 		Demo_WP()->logs->dlog('Cloned: <b>' .$num_tables . '</b> tables!<br/ >');
-		
-		mysqli_close($cid); 
+
+		mysqli_close($cid);
 	}
 
 	/**
 	 * Add backqouotes to tables and db-names in SQL queries. Example from phpMyAdmin.
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
-	 */	
+	 */
 	private function backquote( $a_name ) {
 
 		if (!empty($a_name) && $a_name != '*') {
@@ -752,7 +755,7 @@ class Demo_WP_Sandbox {
 	 *
 	 * @access private
 	 * @since 1.0
-	 * @return void 
+	 * @return void
 	 */
 	function sql_addslashes($a_string = '', $is_like = FALSE) {
 
@@ -768,7 +771,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Reads the Database table in $source_table and executes SQL Statements for cloning it to $target_table.
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -778,7 +781,7 @@ class Demo_WP_Sandbox {
 
 		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
 		mysqli_set_charset( $cid, DB_CHARSET );
-		
+
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
 
 		if ( isset( $_POST['is_debug'] ) )
@@ -787,7 +790,7 @@ class Demo_WP_Sandbox {
 		$result = mysqli_query( $cid, $query );
 		if ( $result == false )
 			Demo_WP()->logs->dlog ( '<b>ERROR</b> dropping table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
-		
+
 		// Table structure - Get table structure
 		$query = "SHOW CREATE TABLE " . $this->backquote( $source_table );
 		$result = mysqli_query( $cid, $query );
@@ -800,7 +803,7 @@ class Demo_WP_Sandbox {
 			}
 			mysqli_free_result( $result );
 		}
-		
+
 		// Create cloned table structure
 		$query = str_replace( $source_table, $target_table, $sql_statements );
 		if ( isset( $_POST['is_debug'] ) )
@@ -813,7 +816,7 @@ class Demo_WP_Sandbox {
 		// Table data contents - Get table contents
 		$query = "SELECT * FROM " . $this->backquote( $source_table );
 		$result = mysqli_query( $cid, $query );
-		if ( $result == false ) { 
+		if ( $result == false ) {
 			Demo_WP()->logs->dlog ( '<b>ERROR</b> getting table contents with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
 		} else {
 			$fields_cnt = mysqli_num_fields( $result );
@@ -831,14 +834,14 @@ class Demo_WP_Sandbox {
 			} else {
 				$field_num[$j] = false;
 			}
-		} // end for		
+		} // end for
 
 		// Sets the scheme
 		$entries = 'INSERT INTO ' . $this->backquote($target_table) . ' VALUES (';
 		$search	= array("\x00", "\x0a", "\x0d", "\x1a"); 	//\x08\\x09, not required
 		$replace	= array('\0', '\n', '\r', '\Z');
 		$current_row	= 0;
-		
+
 		while ( $row = mysqli_fetch_row( $result ) ) {
 			$current_row++;
 			// Tracks the _transient_feed_ and _transient_rss_ garbage for exclusion
@@ -861,20 +864,20 @@ class Demo_WP_Sandbox {
 							$is_trans = false;
 						}
 						// set $is_trans for the next field based on the contents of the current field
-						(strpos($row[$j],'_transient_feed_') === false && strpos($row[$j],'_transient_rss_') === false) ? $is_trans = false : $is_trans = true; 
-							
+						(strpos($row[$j],'_transient_feed_') === false && strpos($row[$j],'_transient_rss_') === false) ? $is_trans = false : $is_trans = true;
+
 					} //if ($field_num[$j])
 				} else {
 					$values[]     = "''";
 				} // if (!isset($row[$j]))
 			} // for ($j = 0; $j < $fields_cnt; $j++)
-			
-			// Execute current insert row statement						
+
+			// Execute current insert row statement
 			$query = $entries . implode(', ', $values) . ')';
 			if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( $query . '<br />'); }
 			// Have to separate this into its own function otherwise it interfers with current mysql connection / results
-			$this->insert_query($query);			
-			
+			$this->insert_query($query);
+
 			unset($values);
 		} // while ($row = mysql_fetch_row($result))
 		mysqli_free_result( $result );
@@ -882,7 +885,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Insert our data
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -899,7 +902,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Replace references to our main site within our newly cloned sandbox site.
-	 * 
+	 *
 	 * @access private
 	 * @since 1.0
 	 * @return void
@@ -913,40 +916,40 @@ class Demo_WP_Sandbox {
 		if (!$cid) { Demo_WP()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
 
 		// First, get a list of tables
-		// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard 
+		// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard
 		// single chars in LIKE statement and can really hose up the database
 		$SQL = 'SHOW TABLES LIKE \'' . str_replace('_','\_',$target_prefix) . '%\'';
 
 		$tables_list = mysqli_query( $cid, $SQL );
 
 		if (!$tables_list) {
-		Demo_WP()->logs->dlog ("ERROR: " . mysqli_error() . "<br/>$SQL<br/>"); } 
+		Demo_WP()->logs->dlog ("ERROR: " . mysqli_error() . "<br/>$SQL<br/>"); }
 
 		// Loop through the tables
 
 		while ( $table_rows = mysqli_fetch_array( $tables_list ) ) {
-			
+
 			$table = $table_rows[0];
-						
+
 			$count_tables_checked++;
 			Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 			Demo_WP()->logs->dlog ( 'Searching table: <b>' . $table . '</b><br />');  // we have tables!
 			Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
-			
+
 			// ---------------------------------------------------------------------------------------------------------------
-			
+
 			$SQL = "DESCRIBE ".$table ;    // fetch the table description so we know what to do with it
 			$fields_list = mysqli_query( $cid, $SQL );
-			
+
 			// Make a simple array of field column names
-			
+
 			/*------------------------------------------------------------------------------------------------------------------
 			*/
 			$index_fields = "";  // reset fields for each table.
 			$column_name = "";
 			$table_index = "";
 			$i = 0;
-			
+
 			while ( $field_rows = mysqli_fetch_array( $fields_list ) ) {
 				$column_name[$i++] = $field_rows['Field'];
 				if ($field_rows['Key'] == 'PRI') $table_index[] = $field_rows['Field'] ;
@@ -959,34 +962,34 @@ class Demo_WP_Sandbox {
 			//    print_r ($table_index);
 
 			// now let's get the data and do search and replaces on it...
-			
+
 			$SQL = "SELECT * FROM ".$table;     // fetch the table contents
 			$data = mysqli_query( $cid, $SQL );
 
 			if (!$data) {
-			Demo_WP()->logs->dlog ("<br /><b>ERROR:</b> " . mysqli_error() . "<br/>$SQL<br/>"); } 
+			Demo_WP()->logs->dlog ("<br /><b>ERROR:</b> " . mysqli_error() . "<br/>$SQL<br/>"); }
 
 			while ( $row = mysqli_fetch_array( $data ) ) {
 
 				// Initialize the UPDATE string we're going to build, and we don't do an update for each column...
-				
+
 				$need_to_update = false;
 				$UPDATE_SQL = 'UPDATE '.$table. ' SET ';
 				$WHERE_SQL = ' WHERE ';
 				foreach($table_index as $index){
 					$WHERE_SQL .= "$index = '$row[$index]' AND ";
 				}
-				
+
 				$j = 0;
 
 				foreach ($column_name as $current_column) {
-					
+
 					// Thank you to hansbr for improved replacement logic
 					$data_to_fix = $edited_data = $row[$current_column]; // set the same now - if they're different later we know we need to updated
 					$j++; // keep track of index of current column
-					
+
 					// -- PROCESS THE SEARCH ARRAY --
-					foreach( $replace_array as $search_for => $replace_with) {						
+					foreach( $replace_array as $search_for => $replace_with) {
 						$count_items_checked++;
 						//            echo "<br/>Current Column = $current_column";
 						//            if ($current_column == $index_field) $index_value = $row[$current_column];    // if it's the index column, store it for use in the update
@@ -999,22 +1002,22 @@ class Demo_WP_Sandbox {
 							$edited_data = serialize($unserialized);
 							//                echo "**Output of search and replace: <br/>";
 							//                echo "$edited_data <br/>";
-							//                print_r($unserialized);        
+							//                print_r($unserialized);
 							//                echo "---------------------------------<br/>";
 						}
 						elseif (is_string($data_to_fix)){
 							$edited_data = str_replace($search_for,$replace_with,$edited_data) ;
-						}						
+						}
 					}
 					//-- SEARCH ARRAY COMPLETE ----------------------------------------------------------------------
-					
+
 					if ($data_to_fix != $edited_data) {   // If they're not the same, we need to add them to the update string
 						$count_items_changed++;
 						if ($need_to_update != false) $UPDATE_SQL = $UPDATE_SQL.',';  // if this isn't our first time here, add a comma
 						$UPDATE_SQL = $UPDATE_SQL.' '.$current_column.' = "' . mysqli_real_escape_string( $cid, $edited_data ). '"';
 						$need_to_update = true; // only set if we need to update - avoids wasted UPDATE statements
 					}
-					
+
 				}
 
 				if ($need_to_update) {
@@ -1023,32 +1026,32 @@ class Demo_WP_Sandbox {
 					$UPDATE_SQL = $UPDATE_SQL.$WHERE_SQL;
 					if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( $UPDATE_SQL.'<br/><br/>'); }
 					$result = mysqli_query( $cid,$UPDATE_SQL );
-					if (!$result) Demo_WP()->logs->dlog (("<br /><b>ERROR: </b>" . mysqli_error() . "<br/>$UPDATE_SQL<br/>")); 
+					if (!$result) Demo_WP()->logs->dlog (("<br /><b>ERROR: </b>" . mysqli_error() . "<br/>$UPDATE_SQL<br/>"));
 				}
 			}
 			/*---------------------------------------------------------------------------------------------------------*/
 		}
-		mysqli_close( $cid ); 
+		mysqli_close( $cid );
 	}
 
 	/**
 	 * Get the uploads folder for the target site
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
 	public function get_upload_folder( $id ) {
 		switch_to_blog( $id );
-		$src_upload_dir = wp_upload_dir(); 
+		$src_upload_dir = wp_upload_dir();
 		restore_current_blog();
 		Demo_WP()->logs->dlog('Original basedir returned by wp_upload_dir() = <strong>'.$src_upload_dir['basedir'].'</strong><br />');
 		// trim '/files' off the end of loction for sites < 3.5 with old blogs.dir format
-		$folder = str_replace('/files', '', $src_upload_dir['basedir']); 
+		$folder = str_replace('/files', '', $src_upload_dir['basedir']);
 		$content_dir = '';
 		// validate the folder itself to handle cases where htaccess or themes alter wp_upload_dir() output
 		if ( $id!=1 && (strpos($folder, '/'.$id) === false || !file_exists($folder)) ) {
-			// we have a non-standard folder and the copy will probably not work unless we correct it	
+			// we have a non-standard folder and the copy will probably not work unless we correct it
 			// get the installation dir - we're using the internal WP constant which the codex says not to do
 			// but at this point the wp_upload_dir() has failed and this is a last resort
 			$content_dir = WP_CONTENT_DIR; //no trailing slash
@@ -1067,14 +1070,14 @@ class Demo_WP_Sandbox {
 				return $test_dir;
 			}
 		}
-		// otherwise we have a standard folder OR could not find a normal folder and are stuck with 
+		// otherwise we have a standard folder OR could not find a normal folder and are stuck with
 		// sending the original wp_upload_dir() back knowing the replace and copy should work
 		return $folder;
 	}
 
 	/**
 	 * Copy files and directories recursively and return number of copies executed.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return int $num Number of items copied
@@ -1087,7 +1090,7 @@ class Demo_WP_Sandbox {
 			}
 			$files = scandir($src);
 			foreach ($files as $file)
-				if ($file != "." && $file != ".." && $file != 'sites') $num = $this->recursive_file_copy("$src/$file", "$dst/$file", $num); 
+				if ($file != "." && $file != ".." && $file != 'sites') $num = $this->recursive_file_copy("$src/$file", "$dst/$file", $num);
 		}
 		else if (file_exists($src)) copy($src, $dst);
 		return $num;
@@ -1095,7 +1098,7 @@ class Demo_WP_Sandbox {
 
 	/**
 	 * Replace the values within a multi-dimensional array
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -1114,6 +1117,6 @@ class Demo_WP_Sandbox {
 		} else {
 			if (is_string($data)) $data = str_replace($find, $replace, $data);
 		}
-	} 
+	}
 
 } // End Demo_WP_Sandbox class
