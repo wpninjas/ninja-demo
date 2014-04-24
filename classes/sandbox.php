@@ -265,7 +265,7 @@ class Demo_WP_Sandbox {
 	    	// Get our sandbox lifespan
 			$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog->blog_id );
 	   		// Get our current sandbox lifetime
-	   		$life = time( 'now' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
+	   		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
 	   		//$life = 324234234234234424234234234234234234234;
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
 	   		if ( $life >= $lifespan ) {
