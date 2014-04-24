@@ -43,7 +43,7 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'purge_sandboxes' ) );
+		add_action( 'dwp_hourly', array( $this, 'purge_sandboxes' ) );
 		add_action( 'init', array( $this, 'create_sandbox_check' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 
@@ -265,7 +265,8 @@ class Demo_WP_Sandbox {
 	    	// Get our sandbox lifespan
 			$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog->blog_id );
 	   		// Get our current sandbox lifetime
-	   		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
+			$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
+	   		
 	   		//$life = 324234234234234424234234234234234234234;
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
 	   		if ( $life >= $lifespan ) {
