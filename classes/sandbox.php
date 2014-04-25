@@ -262,14 +262,11 @@ class Demo_WP_Sandbox {
 	    $sites = array();
 	    $redirect = false;
 	    foreach ( $blogs as $blog ) {
-	    	// Get our sandbox lifespan
-			$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog->blog_id );
-	   		// Get our current sandbox lifetime
-			$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
+	    	
+			$life = $this->get_time_left( $blog->blog_id );
 	   		
-	   		//$life = 324234234234234424234234234234234234234;
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( $life >= $lifespan ) {
+	   		if ( $life == false ) {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
@@ -280,6 +277,27 @@ class Demo_WP_Sandbox {
 		if ( $redirect ) {
 			wp_redirect( get_blog_details( 1 )->siteurl );
 			exit;
+		}
+	}
+
+	/**
+	 * Get how much longer a sandbox should live
+	 * Return the remaining time as a timestamp or false if the sandbox has expired.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return int $life
+	 */
+	public function get_time_left( $blog_id = '' ) {
+		if ( $blog_id == '' )
+			$blog_id = get_current_blog_id();
+
+		$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog_id );
+		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
+		if ( $life >= $lifespan ) {
+			return false;
+		} else {
+			return $life;
 		}
 	}
 
