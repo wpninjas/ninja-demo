@@ -82,7 +82,7 @@ class Demo_WP_Admin {
 					<div id="post-body">
 						<div id="post-body-content">
 							<?php
-								$count = Demo_WP()->sandbox->count_sandboxes();
+								$count = Demo_WP()->sandbox->count();
 								if ( $count == 1 ) {
 									$count_msg = __( 'Live Sandbox', 'demo-wp' );
 								} else {
@@ -95,23 +95,23 @@ class Demo_WP_Admin {
 							<tbody>
 								<tr>
 									<th scope="row">
-										<?php _e( 'Offline Mode', 'demo-wp' ); ?>
+										<label for="offline"><?php _e( 'Offline Mode', 'demo-wp' ); ?></label>
 									</th>
 									<td>
 										<fieldset>
 											<input type="hidden" name="offline" value="0">
-											<label for="offline"><input type="checkbox" name="offline" value="1" <?php checked( 1, Demo_WP()->settings['offline'] ); ?>> <?php _e( 'Delete current sandboxes and take demo completely offline', 'demo-wp' ); ?></label>
+											<label><input type="checkbox" id="offline" name="offline" value="1" <?php checked( 1, Demo_WP()->settings['offline'] ); ?>> <?php _e( 'Delete current sandboxes and take demo completely offline', 'demo-wp' ); ?></label>
 										</fieldset>
 									</td>
 								</tr>
 								<tr>
 									<th scope="row">
-										<?php _e( 'Pevent New Sandboxes', 'demo-wp' ); ?>
+										<label for="prevent_clones"><?php _e( 'Pevent New Sandboxes', 'demo-wp' ); ?></label>
 									</th>
 									<td>
 										<fieldset>
 											<input type="hidden" name="prevent_clones" value="0">
-											<label><input type="checkbox" name="prevent_clones" value="1" <?php checked( 1, Demo_WP()->settings['prevent_clones'] ); ?>> <?php _e( 'Keep current sandboxes, but prevent new sandboxes from being created', 'demo-wp' ); ?></label>
+											<label><input type="checkbox" id="prevent_clones" name="prevent_clones" value="1" <?php checked( 1, Demo_WP()->settings['prevent_clones'] ); ?>> <?php _e( 'Keep current sandboxes, but prevent new sandboxes from being created', 'demo-wp' ); ?></label>
 										</fieldset>
 									</td>
 								</tr>
@@ -146,10 +146,35 @@ class Demo_WP_Admin {
 								</tr>
 								<tr>
 									<th scope="row">
+										<label for="auto_login"><?php _e( 'Auto-Login Users As', 'demo-wp' ); ?></label>
 									</th>
 									<td>
 										<fieldset>
-											<input type="submit" class="button-secondary" id="delete_sandboxes" name="delete_sandboxes" value="<?php _e( 'Delete All Sandboxes', 'demo-wp' ); ?>">
+											<select name="auto_login">
+												<option value=""><?php _e( '- None', 'demo-wp' ); ?>
+												<?php
+												$users = get_users( 1 );
+												if ( is_array( $users ) ) {
+													foreach ( $users as $user ) {
+														if ( ! user_can( $user->ID, 'manage_network_options' ) ) {
+															?>
+															<option value="<?php echo $user->ID; ?>" <?php selected( $user->ID, Demo_WP()->settings['auto_login'] ); ?> ><?php echo $user->user_login;?></option>
+															<?php
+														}
+													}
+												}
+
+												?>
+											</select>
+										</fieldset>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row">
+									</th>
+									<td>
+										<fieldset>
+											<input type="submit" class="button-secondary" id="deletees" name="deletees" value="<?php _e( 'Delete All Sandboxes', 'demo-wp' ); ?>">
 										</fieldset>
 									</td>
 								</tr>
@@ -244,7 +269,7 @@ class Demo_WP_Admin {
 		</form>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
-				$( document ).on( 'click', '#delete_sandboxes', function( e ) {
+				$( document ).on( 'click', '#deletees', function( e ) {
 					var answer = confirm( '<?php _e( 'Really delete all sanboxes?', 'demo-wp' ); ?>' );
 					return answer;
 				});
@@ -291,17 +316,18 @@ class Demo_WP_Admin {
 					}
 
 					if ( isset ( $_POST['offline'] ) && $_POST['offline'] == 1 )
-						Demo_WP()->sandbox->delete_all_sandboxes();
+						Demo_WP()->sandbox->delete_all();
 
 					Demo_WP()->settings['offline'] = $_POST['offline'];
 					Demo_WP()->settings['prevent_clones'] = $_POST['prevent_clones'];
 					Demo_WP()->settings['lifespan'] = $_POST['lifespan'];
 					Demo_WP()->settings['log'] = $_POST['log'];
+					Demo_WP()->settings['auto_login'] = $_POST['auto_login'];
 
 					Demo_WP()->update_settings( Demo_WP()->settings );
 
-				} else if ( isset ( $_POST['delete_sandboxes'] ) ) {
-					Demo_WP()->sandbox->delete_all_sandboxes();
+				} else if ( isset ( $_POST['deletees'] ) ) {
+					Demo_WP()->sandbox->delete_all();
 				}
 			}
 		}

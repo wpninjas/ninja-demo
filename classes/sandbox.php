@@ -43,8 +43,7 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'dwp_hourly', array( $this, 'purge_sandboxes' ) );
-		add_action( 'init', array( $this, 'create_sandbox_check' ) );
+		add_action( 'dwp_hourly', array( $this, 'purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 
 		//define which tables to skip by default when cloning root site
@@ -76,7 +75,7 @@ class Demo_WP_Sandbox {
 	 * @since 1.0
 	 * @return int $count
 	 */
-	public function count_sandboxes() {
+	public function count() {
 		global $wpdb;
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
@@ -98,7 +97,7 @@ class Demo_WP_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function delete_all_sandboxes() {
+	public function delete_all() {
 		global $wpdb;
 		// Get a list of all of our sandboxes
 		$blogs = $wpdb->get_results("
@@ -111,7 +110,7 @@ class Demo_WP_Sandbox {
 	        AND blog_id != 1"
 	    );
 	    foreach ( $blogs as $blog ) {
-	    	$this->delete_sandbox( $blog->blog_id, true );
+	    	$this->delete( $blog->blog_id );
 		}
 	}
 
@@ -122,7 +121,7 @@ class Demo_WP_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function delete_sandbox( $blog_id, $drop = false ) {
+	public function delete( $blog_id, $drop = true ) {
 		global $wpdb;
 
 		$switch = false;
@@ -235,6 +234,9 @@ class Demo_WP_Sandbox {
 			clean_blog_cache( $blog );
 		}
 
+		// Delete our stored $_SESSION variable
+		unset( $_SESSION['demo_wp_sandbox'] );
+
 		if ( $switch )
 			restore_current_blog();
 	}
@@ -246,7 +248,7 @@ class Demo_WP_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function purge_sandboxes() {
+	public function purge() {
 		global $wpdb;
 
 		// Get a list of all of our sandboxes
@@ -268,7 +270,7 @@ class Demo_WP_Sandbox {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
-				$this->delete_sandbox( $blog->blog_id, true );
+				$this->delete( $blog->blog_id );
 	   		}
 		}
 
@@ -338,90 +340,29 @@ class Demo_WP_Sandbox {
 	}
 
 	/**
-	 * Check to see if we should create a sandbox
-	 *
+	 * "Reset" a user's sandbox by removing the current one and creating a new one.
+	 * 
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
-	public function create_sandbox_check() {
-
-		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
-		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
-
-			if ( $this->is_alive( $_SESSION['demo_wp_sandbox'] ) ) {
-				if ( is_main_site() ) {
-					wp_redirect( get_blog_details( $_SESSION['demo_wp_sandbox'] )->siteurl );
-					die;
-				}
-			} else {
-				unset( $_SESSION['demo_wp_sandbox'] );
-				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
-				die();
-			}
-		}
-
-		// Bail if the "prevent_clones" has been set to 1
-		if ( Demo_WP()->settings['prevent_clones'] == 1 )
-			return false;
-
-		// Bail if this user's IP is on our blocked list
-		if ( Demo_WP()->ip->check_ip_lockout( $_SERVER['REMOTE_ADDR'] ) )
-			return false;
-
-		// Bail if we haven't clicked the tryout button
-		if ( ! isset ( $_POST['dwp_create_sandbox'] ) || $_POST['dwp_create_sandbox'] != 1 )
-			return false;
-
-		// Bail if we don't have a nonce
-		if ( ! isset ( $_POST['demo_wp_sandbox'] ) )
-			return false;
-
-		// Bail if our nonce isn't correct
-		if ( ! wp_verify_nonce( $_POST['demo_wp_sandbox'], 'demo_wp_create_sandbox' ) )
-			return false;
-
-		// Bail if our honey-pot field has been filled in
-		if ( isset ( $_POST['spamcheck'] ) && $_POST['spamcheck'] !== '' )
-			return false;
-
-		// Bail if we haven't sent an answer to the anti-spam question
-		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) )
-			return false;
-
-		// Bail if our anti-spam answer isn't correct
-		if ( $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
-			// Add 1 to the number of times this user has failed to login
-			if ( ! isset ( $_SESSION['demo_wp_failed'] ) ) {
-				$_SESSION['demo_wp_failed'] = 1;
-			} else {
-				$_SESSION['demo_wp_failed']++;
-			}
-
-			if ( $_SESSION['demo_wp_failed'] >= 4 ) {
-				// Add this user to the IP lockout table.
-				Demo_WP()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'] );
-				$_SESSION['demo_wp_failed'] = 0;
-			}
-			// Remove our transient answer
-			delete_transient( $_POST['tid'] );
-
-			return false;
-		}
-		// Remove our transient answer
-		delete_transient( $_POST['tid'] );
-
-		$this->create_sandbox();
+	public function reset() {
+		// Delete our current sandbox
+		$this->delete( get_current_blog_id() );
+		// Switch to our main blog
+		switch_to_blog( 1 );
+		// Create a new sandbox
+		$this->create();
 	}
 
 	/**
 	 * Create our sandbox
 	 *
-	 * @access private
+	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
-	private function create_sandbox() {
+	public function create() {
 		global $wpdb, $report, $count_tables_checked, $count_items_checked, $count_items_changed, $current_site, $wp_version;
 
 		// Declare the locals that need to be available throughout the function:
@@ -625,9 +566,17 @@ class Demo_WP_Sandbox {
 		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->log_file_url . '" target="_blank">Historical Log</a> || ';
 		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->detail_log_file_url . '" target="_blank">Detailed Log</a> ';
 
-		// Save status for display on next page
-		// $_SESSION['cloner_status'] = $this->status;
 		$_SESSION['demo_wp_sandbox'] = $this->target_id;
+
+		// This sets the option to discourage search engines from indexing sandboxes within a demo.
+	    update_blog_option( $this->target_id, 'blog_public', 0 );
+		
+		// Auto-login our user if we aren't the super admin
+	    if ( Demo_WP()->settings['auto_login'] !== '' && ! Demo_WP()->is_admin_user() ) {
+		    wp_clear_auth_cookie();
+		    wp_set_auth_cookie( Demo_WP()->settings['auto_login'], true );
+		    wp_set_current_user( Demo_WP()->settings['auto_login'] );	    	
+	    }
 
 		do_action( 'dwp_create_sandbox', $this->target_id );
 

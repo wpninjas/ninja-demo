@@ -186,9 +186,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function display_js() {
-		wp_enqueue_script( 'jquery-countdown',
-			DEMO_WP_URL .'assets/js/jquery.countdown.js',
-			array( 'jquery' ) );
+
 	}
 
 	/**
@@ -200,7 +198,6 @@ class Demo_WP {
 	 */
 	public function display_css() {
 		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/display.css' );
-		wp_enqueue_style( 'jquery-countdown', DEMO_WP_URL .'assets/css/jQuery-countdown.css' );
 	}
 
 	/**
@@ -323,34 +320,6 @@ class Demo_WP {
 		}
 	}
 
-	/**
-	 * Convert seconds into hours:minutes:seconds
-	 * 
-	 * @access public
-	 * @since 1.0
-	 * @return array $time
-	 */
-	public function convert_seconds( $seconds ) {
-
-	    // extract hours
-	    $hours = floor($seconds / (60 * 60));
-	 
-	    // extract minutes
-	    $divisor_for_minutes = $seconds % (60 * 60);
-	    $minutes = floor($divisor_for_minutes / 60);
-	 
-	    // extract the remaining seconds
-	    $divisor_for_seconds = $divisor_for_minutes % 60;
-	    $seconds = ceil($divisor_for_seconds);
-	 
-	    // return the final array
-	    $time = array(
-	        "h" => (int) $hours,
-	        "m" => (int) $minutes,
-	        "s" => (int) $seconds,
-	    );
-	    return $time;
-	}
 } // End Class
 
 /**
