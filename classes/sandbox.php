@@ -333,12 +333,14 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function add_menu_bar_reset( $wp_admin_bar ) {
-		$url = add_query_arg( array( 'reset_sandbox' => 1 ) );
-		$wp_admin_bar->add_menu( array(
-	        'id'   => 'reset-site',
-	        'meta' => array(),
-	        'title' => __( 'Reset Site Content', 'demo-wp' ),
-	        'href' => wp_nonce_url( $url, 'demo_wp_reset_sandbox', 'demo_wp_sandbox' ) ) );
+		if ( Demo_WP()->is_sandbox() ) {
+			$url = add_query_arg( array( 'reset_sandbox' => 1 ) );
+			$wp_admin_bar->add_menu( array(
+		        'id'   => 'reset-site',
+		        'meta' => array(),
+		        'title' => __( 'Reset Site Content', 'demo-wp' ),
+		        'href' => wp_nonce_url( $url, 'demo_wp_reset_sandbox', 'demo_wp_sandbox' ) ) );
+		}
 	}
 
 
