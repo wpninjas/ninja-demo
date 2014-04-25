@@ -3,11 +3,10 @@
 Plugin Name: Demo WP Pro
 Plugin URI: http://demowp.pro
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 1.0
+Version: 0.1
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: demo-wp
-Domain Path: /lang/
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -181,7 +180,7 @@ class Demo_WP {
 
 	/**
 	 * Enqueue our display (front-end) JS
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
@@ -294,7 +293,7 @@ class Demo_WP {
 	/**
 	 * Check to see if we are currently in a sandbox.
 	 * Wrapper function for is_main_site()
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return bool
