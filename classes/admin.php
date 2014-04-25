@@ -40,7 +40,7 @@ class Demo_WP_Admin {
 	public function add_menu_page() {
 		$page = add_menu_page( "Demo WP PRO" , __( 'Demo WP PRO', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_network_options' ), "demo-wp", array( $this, "output_admin_page" ), "", "32.1337" );
 		add_action( 'admin_print_styles-' . $page, array( $this, 'admin_css' ) );
-		add_action( 'admin_print_scripts-' . $page, array( $this, 'admin_js' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'admin_js' ) );
 	}
 
 	/**
@@ -62,6 +62,11 @@ class Demo_WP_Admin {
 	 * @return void
 	 */
 	public function admin_js() {
+
+		if ( ! Demo_WP()->is_admin_user() && Demo_WP()->is_sandbox() ) {
+			wp_enqueue_script( 'demo-wp-monitor', DEMO_WP_URL .'assets/js/monitor.js', array( 'jquery', 'heartbeat' ) );
+		}
+		
 		wp_enqueue_script( 'jquery-masonry' );
 	}
 
@@ -124,35 +129,6 @@ class Demo_WP_Admin {
 										<fieldset>
 											<input type="hidden" name="prevent_clones" value="0">
 											<label><input type="checkbox" id="prevent_clones" name="prevent_clones" value="1" <?php checked( 1, Demo_WP()->settings['prevent_clones'] ); ?>> <?php _e( 'Keep current sandboxes, but prevent new sandboxes from being created', 'demo-wp' ); ?></label>
-										</fieldset>
-									</td>
-								</tr>
-								<tr>
-									<th scope="row">
-										<?php _e( 'Sandbox Lifespan', 'demo-wp' ); ?>
-									</th>
-									<td>
-										<fieldset>
-											<?php
-											$lifespans = apply_filters( 'dwp_lifespans', array(
-												array( 'name' => __( 'One Hour', 'demo-wp' ), 'value' => 3600 ),
-												array( 'name' => __( 'Two Hours', 'demo-wp' ), 'value' => 7200 ),
-												array( 'name' => __( 'Four Hours', 'demo-wp' ), 'value' => 14400 ),
-												array( 'name' => __( 'Six Hours', 'demo-wp' ), 'value' => 21600 ),
-												array( 'name' => __( 'Eight Hours', 'demo-wp' ), 'value' => 28800 ),
-											) );
-
-											?>
-											<select name="lifespan">
-												<?php
-												foreach( $lifespans as $lifespan ) {
-													?>
-													<option value="<?php echo $lifespan['value']; ?>" <?php selected( $lifespan['value'], Demo_WP()->settings['lifespan'] ); ?>><?php echo $lifespan['name']; ?></option>
-													<?php
-												}
-												?>
-
-											</select>
 										</fieldset>
 									</td>
 								</tr>

@@ -45,6 +45,8 @@ class Demo_WP_Sandbox {
 	public function __construct() {
 		add_action( 'dwp_hourly', array( $this, 'purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
+		add_action( 'init', array( $this, 'reset_listen' ) );
+		add_action( 'admin_bar_menu', array( $this, 'add_menu_bar_reset' ), 999 );
 
 		//define which tables to skip by default when cloning root site
 		$this->global_tables = apply_filters( 'dwp_global_tables', array(
@@ -237,12 +239,15 @@ class Demo_WP_Sandbox {
 		// Delete our stored $_SESSION variable
 		unset( $_SESSION['demo_wp_sandbox'] );
 
+		// Logout our current use
+		wp_logout();
+
 		if ( $switch )
 			restore_current_blog();
 	}
 
 	/**
-	 * Check to see if any of our sandboxes needs to be purged.
+	 * Check to see if any of our sandboxes need to be purged.
 	 *
 	 * @access public
 	 * @since 1.0
@@ -266,7 +271,7 @@ class Demo_WP_Sandbox {
 	    foreach ( $blogs as $blog ) {
 
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( ! $this->get_time_left( $blog->blog_id ) ) {
+	   		if ( $this->has_expired( $blog->blog_id ) ) {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
@@ -281,43 +286,24 @@ class Demo_WP_Sandbox {
 	}
 
 	/**
-	 * Get how much longer a sandbox should live
-	 * Return the remaining time as a timestamp or false if the sandbox has expired.
+	 * Check to see if this sandbox has expired
 	 * 
 	 * @access public
 	 * @since 1.0
-	 * @return int $remaining_life
+	 * @return bool;
 	 */
-	public function get_time_left( $blog_id = '' ) {
+	public function has_expired( $blog_id = '' ) {
 		if ( $blog_id == '' )
 			$blog_id = get_current_blog_id();
 
-		$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog_id );
-		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog_id )->registered );
+		$idle_limit = apply_filters( 'dwp_sandbox_lifespan', 900, $blog_id ); // 900 seconds = 15 minutes
+		$idle_time = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog_id )->last_updated );
 
-		$remaining_life = $lifespan - $life;
-		if ( $remaining_life >= 0 ) {
-			return $remaining_life;
+		if ( $idle_time >= $idle_limit ) {
+			return true;
 		} else {
 			return false;
 		}
-	}
-
-	/**
-	 * Get the end time for our sandbox
-	 * 
-	 * @access public
-	 * @since 1.0
-	 * @return int $end_time;
-	 */
-	public function get_end_time( $blog_id = '' ) {
-		if ( $blog_id == '' )
-			$blog_id = get_current_blog_id();
-
-		$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog_id );
-		$end_time = strtotime( get_blog_details( $blog_id )->registered ) + $lifespan;
-
-		return $end_time;
 	}
 
 	/**
@@ -327,7 +313,7 @@ class Demo_WP_Sandbox {
 	 * @since 1.0
 	 * @return bool
 	 */
-	public function is_alive( $blog_id = '' ) {
+	public function is_active( $blog_id = '' ) {
 		if ( $blog_id == '' )
 			$blog_id = get_current_blog_id();
 
@@ -338,6 +324,48 @@ class Demo_WP_Sandbox {
 			return false;
 		}
 	}
+
+	/**
+	 * Add an item to the menu bar for non-network admin users that allows them to reset their sandbox
+	 *
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function add_menu_bar_reset( $wp_admin_bar ) {
+		$url = add_query_arg( array( 'reset_sandbox' => 1 ) );
+		$wp_admin_bar->add_menu( array(
+	        'id'   => 'reset-site',
+	        'meta' => array(),
+	        'title' => __( 'Reset Site Content', 'demo-wp' ),
+	        'href' => wp_nonce_url( $url, 'demo_wp_reset_sandbox', 'demo_wp_sandbox' ) ) );
+	}
+
+
+	/**
+	 * Listen for the sandbox reset $_REQUEST data
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function reset_listen() {
+
+		// Bail if our $_POST value isn't set.
+		if ( ! isset ( $_GET['reset_sandbox'] ) || $_GET['reset_sandbox'] != 1 )
+			return false;
+		
+		// Bail if we don't have a nonce
+		if ( ! isset ( $_GET['demo_wp_sandbox'] ) )
+			return false;
+
+		// Bail if our nonce isn't correct
+		if ( ! wp_verify_nonce( $_GET['demo_wp_sandbox'], 'demo_wp_reset_sandbox' ) )
+			return false;
+
+		$this->reset();
+	}
+
 
 	/**
 	 * "Reset" a user's sandbox by removing the current one and creating a new one.
@@ -577,6 +605,9 @@ class Demo_WP_Sandbox {
 		    wp_set_auth_cookie( Demo_WP()->settings['auto_login'], true );
 		    wp_set_current_user( Demo_WP()->settings['auto_login'] );	    	
 	    }
+
+	    // Set our "last updated" time to the current time.
+	    $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => $this->target_id ) );
 
 		do_action( 'dwp_create_sandbox', $this->target_id );
 

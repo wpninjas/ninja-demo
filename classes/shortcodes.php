@@ -23,11 +23,8 @@ class Demo_WP_Shortcodes {
 	 * @return void
 	 */
 	public function __construct() {
-		add_shortcode( 'dwp_try_demo', array( $this, 'try_button' ) );
+		add_shortcode( 'try_demo', array( $this, 'try_button' ) );
 		add_action( 'init', array( $this, 'create_listen' ) );
-
-		add_shortcode( 'dwp_reset_sandbox', array( $this, 'reset_button' ) );
-		add_action( 'init', array( $this, 'reset_listen' ) );
 
 		add_shortcode( 'is_sandbox', array( $this, 'is_sandbox' ) );
 		add_shortcode( 'is_not_sandbox', array( $this, 'is_not_sandbox' ) );
@@ -141,20 +138,6 @@ class Demo_WP_Shortcodes {
 	 * @return void
 	 */
 	public function create_listen() {
-		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
-		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
-
-			if ( Demo_WP()->sandbox->is_alive( $_SESSION['demo_wp_sandbox'] ) ) {
-				if ( is_main_site() ) {
-					wp_redirect( get_blog_details( $_SESSION['demo_wp_sandbox'] )->siteurl );
-					die;
-				}
-			} else {
-				unset( $_SESSION['demo_wp_sandbox'] );
-				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
-				die();
-			}
-		}
 
 		// Bail if the "prevent_clones" has been set to 1
 		if ( Demo_WP()->settings['prevent_clones'] == 1 )
@@ -273,7 +256,7 @@ class Demo_WP_Shortcodes {
 	 */
 	public function reset_button() {
 		// Bail if we aren't in a live sandbox
-		if ( ! Demo_WP()->is_sandbox() || ! Demo_WP()->sandbox->is_alive() )
+		if ( ! Demo_WP()->is_sandbox() || ! Demo_WP()->sandbox->is_active() )
 			return false;
 
 		ob_start();
@@ -286,33 +269,6 @@ class Demo_WP_Shortcodes {
 		<?php
 		$output = ob_get_clean();
 		return $output;
-	}
-
-	/**
-	 * Listen for our reset button
-	 * 
-	 * @access public
-	 * @since 1.0
-	 * @return void
-	 */
-	public function reset_listen() {
-		// Bail if our $_POST value isn't set.
-		if ( ! isset ( $_POST['reset_sandbox'] ) || $_POST['reset_sandbox'] != 1 )
-			return false;
-
-		// Bail if our user doesn't have a current blog_id in their $_SESSION variable
-		if ( ! isset ( $_SESSION['demo_wp_sandbox'] ) || empty ( $_SESSION['demo_wp_sandbox'] ) )
-			return false;
-
-		// Bail if we don't have a nonce
-		if ( ! isset ( $_POST['demo_wp_sandbox'] ) )
-			return false;
-
-		// Bail if our nonce isn't correct
-		if ( ! wp_verify_nonce( $_POST['demo_wp_sandbox'], 'demo_wp_reset_sandbox' ) )
-			return false;
-
-		Demo_WP()->sandbox->reset();
 	}
 
 	/**

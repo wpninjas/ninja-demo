@@ -25,7 +25,8 @@ class Demo_WP_Restrictions {
 	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'offline_check' ) );
-		add_action( 'admin_init', array( $this, 'remove_pages' ) );
+		add_action( 'init', array( $this, 'main_site_check' ) );
+		add_action( 'admin_menu', array( $this, 'remove_pages' ) );
 		add_filter( 'show_password_fields', array( $this, 'disable_passwords' ) );
 	    add_filter( 'allow_password_reset', array( $this, 'disable_passwords' ) );
 	    add_action( 'personal_options_update', array( $this, 'disable_email_editing' ), 1 );
@@ -43,6 +44,36 @@ class Demo_WP_Restrictions {
 	public function offline_check() {
 		if ( ! Demo_WP()->is_admin_user() && Demo_WP()->settings['offline'] == 1 )
 			wp_die( 'The demo is currently offline.', 'demo-wp' );
+	}
+
+	/**
+	 * These functions are designed to keep users from being logged-in on the main site unless they are the network admin.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function main_site_check() {
+		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
+		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
+			if ( Demo_WP()->sandbox->is_active( $_SESSION['demo_wp_sandbox'] ) ) {
+				if ( is_main_site() ) {
+					wp_redirect( get_blog_details( $_SESSION['demo_wp_sandbox'] )->siteurl );
+					die;
+				}
+			} else {
+				unset( $_SESSION['demo_wp_sandbox'] );
+				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+				die();
+			}
+		}
+
+		// If this user is on the main blog and logged-in in a sandbox, then log them out.
+		if ( is_user_logged_in() && ! Demo_WP()->is_sandbox() && ! Demo_WP()->is_admin_user() ) {
+			wp_logout();
+			wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+			die();
+		}
 	}
 
 	/**

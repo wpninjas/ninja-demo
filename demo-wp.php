@@ -65,17 +65,19 @@ class Demo_WP {
 			self::$instance->admin_settings = new Demo_WP_Admin();
 			self::$instance->sandbox = new Demo_WP_Sandbox();
 			self::$instance->restrictions = new Demo_WP_Restrictions();
+			self::$instance->heartbeat = new Demo_WP_Heartbeat();
 			self::$instance->logs = new Demo_WP_Logs();
 			self::$instance->shortcodes = new Demo_WP_Shortcodes();
 			self::$instance->ip = new Demo_WP_IP_Lockout();
 
-			//add_action( 'admin_bar_menu', array( self::$instance, 'add_menu_bar_reset' ), 999 );
-
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
 
+			add_filter( 'widget_text', 'do_shortcode' );
+
 			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 		}
+
 		return self::$instance;
 	}
 
@@ -162,8 +164,7 @@ class Demo_WP {
 		require_once( DEMO_WP_DIR . 'classes/logs.php' );
 		require_once( DEMO_WP_DIR . 'classes/shortcodes.php' );
 		require_once( DEMO_WP_DIR . 'classes/ip-lockout.php' );
-
-		require_once( DEMO_WP_DIR . 'functions/create-sandbox.php' );
+		require_once( DEMO_WP_DIR . 'classes/heartbeat.php' );
 	}
 
 	/**
@@ -186,7 +187,9 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function display_js() {
-
+		if ( ! self::$instance->is_admin_user() && self::$instance->is_sandbox() ) {
+			wp_enqueue_script( 'demo-wp-monitor', DEMO_WP_URL .'assets/js/monitor.js', array( 'jquery', 'heartbeat' ) );
+		}
 	}
 
 	/**
@@ -232,29 +235,13 @@ class Demo_WP {
 				'offline' 			=> 0,
 				'prevent_clones' 	=> 0,
 				'log'				=> 0,
-				'lifespan'			=> 3600,
 				'parent_pages'		=> array(),
 				'child_pages'		=> array(),
 				'admin_id' 			=> get_current_user_id(),
 			);
 			update_option( 'demo_wp', $args );
 		}
-		wp_schedule_event( time(), 'hourly', 'dwp_hourly' );
-	}
-
-	/**
-	 * Add an item to the menu bar for non-network admin users that allows them to reset their sandbox
-	 *
-	 * @access public
-	 * @since 1.0
-	 * @return void
-	 */
-	public function add_menu_bar_reset( $wp_admin_bar ) {
-		$wp_admin_bar->add_menu( array(
-	        'id'   => 'reset-site',
-	        'meta' => array(),
-	        'title' => __( 'Reset Site Content', 'demo-wp' ),
-	        'href' => 'http://www.cnn.com' ) );
+		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'dwp_hourly' );
 	}
 
 	/**
