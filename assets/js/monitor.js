@@ -18,7 +18,6 @@ jQuery(document).ready(function($) {
 
 	// Listen for the heartbeat send.
 	$(document).on( 'heartbeat-send', function( e, data ) {
-        console.log( 'send' );
         data['dwp_active'] = 1;        
     });
 });
