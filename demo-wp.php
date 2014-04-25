@@ -7,6 +7,7 @@ Version: 0.1
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: demo-wp
+Domain Path: /lang/
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
