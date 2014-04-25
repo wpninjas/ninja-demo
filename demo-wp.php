@@ -291,6 +291,18 @@ class Demo_WP {
 	    }
 	    return false;
 	}
+
+	/**
+	 * Check to see if we are currently in a sandbox.
+	 * Wrapper function for is_main_site()
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return bool
+	 */
+	public function is_sandbox() {
+		return is_main_site();
+	}
 }
 
 /**
