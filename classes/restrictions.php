@@ -154,9 +154,10 @@ class Demo_WP_Restrictions {
 	 */
 	public function remove_menu_bar_items( $wp_admin_bar ) {
 		if ( ! Demo_WP()->is_admin_user() ) {
-			$wp_admin_bar->remove_node('my-sites');
-			$wp_admin_bar->remove_node('new-content');
-			$wp_admin_bar->remove_node('comments');
+			$wp_admin_bar->remove_node( 'appearance' );
+			$wp_admin_bar->remove_node( 'my-sites' );
+			$wp_admin_bar->remove_node( 'new-content' );
+			$wp_admin_bar->remove_node( 'comments' );
 		} else {
 			// We do, however, want to add a straight link to the my-sites.php page.
 			$elements = $wp_admin_bar->get_nodes();
