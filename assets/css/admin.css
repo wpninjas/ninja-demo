@@ -11,6 +11,13 @@
 }
 .dwp-admin-restrict div.dwp-parent-div {
     background: #fff;
-    margin: 0 5px 5px 0;
+    margin: 0 5px 10px 0;
     padding: 15px;
+    width: 200px;
+}
+.dwp-admin-restrict div.dwp-parent-div h4 {
+    margin: 0;
+}
+.dwp-admin-restrict div.dwp-parent-div ul {
+    margin: 5px 0 0 20px;
 }
