@@ -9,7 +9,7 @@
     content: "";
     display: block;
 }
-.dwp-admin-restrict ul.dwp-parent-ul > li {
+.dwp-admin-restrict div.dwp-parent-div {
     background: #fff;
     margin: 0 5px 5px 0;
     padding: 15px;

@@ -40,6 +40,7 @@ class Demo_WP_Admin {
 	public function add_menu_page() {
 		$page = add_menu_page( "Demo WP PRO" , __( 'Demo WP PRO', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_network_options' ), "demo-wp", array( $this, "output_admin_page" ), "", "32.1337" );
 		add_action( 'admin_print_styles-' . $page, array( $this, 'admin_css' ) );
+		add_action( 'admin_print_scripts-' . $page, array( $this, 'admin_js' ) );
 	}
 
 	/**
@@ -51,6 +52,17 @@ class Demo_WP_Admin {
 	 */
 	public function admin_css() {
 		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/admin.css');
+	}
+
+	/**
+	 * Enqueue our admin JS script
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function admin_js() {
+		wp_enqueue_script( 'jquery-masonry' );
 	}
 
 	/**
@@ -174,7 +186,7 @@ class Demo_WP_Admin {
 									</th>
 									<td>
 										<fieldset>
-											<input type="submit" class="button-secondary" id="deletees" name="deletees" value="<?php _e( 'Delete All Sandboxes', 'demo-wp' ); ?>">
+											<input type="submit" class="button-secondary" id="delete_all_sandboxes" name="delete_all_sandboxes" value="<?php _e( 'Delete All Sandboxes', 'demo-wp' ); ?>">
 										</fieldset>
 									</td>
 								</tr>
@@ -187,18 +199,14 @@ class Demo_WP_Admin {
 								<input type="hidden" name="demo_wp_parent_pages[]" value="">
 								<input type="hidden" name="demo_wp_child_pages[]" value="">
 							<?php
-							$x = 0;
+							
 							foreach( $menu as $page ) {
-								if ( $x == 0 ) {
-									?>
-										<ul class="dwp-parent-ul" style="float:left;">
-									<?php
-								}
 								if ( isset ( $page[0] ) && $page[0] != '' && $page[2] != 'demo-wp' && $page[2] != 'plugins.php' ) {
 									$parent_slug = $page[2];
 									$class_name = str_replace( '.', '', $parent_slug );
 									?>
-									<li><label><input type="checkbox" name="demo_wp_parent_pages[]" value="<?php echo $page[2];?>" class="demo-wp-parent" <?php checked( in_array( $page[2], Demo_WP()->settings['parent_pages'] ) ); ?>> <?php echo $page[0]; ?></label>
+									<div class="dwp-parent-div box">
+										<h4><label><input type="checkbox" name="demo_wp_parent_pages[]" value="<?php echo $page[2];?>" class="demo-wp-parent" <?php checked( in_array( $page[2], Demo_WP()->settings['parent_pages'] ) ); ?>> <?php echo $page[0]; ?></label></h4>
 									<?php
 									if ( isset ( $submenu[ $parent_slug ] ) ) {
 										?>
@@ -224,18 +232,11 @@ class Demo_WP_Admin {
 										}
 										?>
 										</ul>
-									</li>
 										<?php
 									}
-								}
-
-								if ( $x == 6 ) {
 									?>
-										</ul>
+									</div>
 									<?php
-									$x = 0;
-								} else {
-									$x++;
 								}
 							}
 							?>
@@ -269,12 +270,17 @@ class Demo_WP_Admin {
 		</form>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
-				$( document ).on( 'click', '#deletees', function( e ) {
+				$( document ).on( 'click', '#delete_all_sandboxes', function( e ) {
 					var answer = confirm( '<?php _e( 'Really delete all sanboxes?', 'demo-wp' ); ?>' );
 					return answer;
 				});
 				$( document ).on( 'change', '.demo-wp-parent', function() {
-					$( this ).parent().parent().find( 'ul input' ).attr( 'checked', this.checked );
+					$( this ).parent().parent().parent().find( 'ul input' ).attr( 'checked', this.checked );
+				});
+				$('.dwp-admin-restrict').masonry({
+				  itemSelector: '.box',
+				  columnWidth: 1,
+				  gutterWidth: 5
 				});
 			});
 		</script>
@@ -326,7 +332,7 @@ class Demo_WP_Admin {
 
 					Demo_WP()->update_settings( Demo_WP()->settings );
 
-				} else if ( isset ( $_POST['deletees'] ) ) {
+				} else if ( isset ( $_POST['delete_all_sandboxes'] ) ) {
 					Demo_WP()->sandbox->delete_all();
 				}
 			}
