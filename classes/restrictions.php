@@ -26,7 +26,7 @@ class Demo_WP_Restrictions {
 	public function __construct() {
 		add_action( 'init', array( $this, 'offline_check' ) );
 		add_action( 'init', array( $this, 'main_site_check' ) );
-		add_action( 'admin_menu', array( $this, 'remove_pages' ) );
+		add_action( 'admin_menu', array( $this, 'remove_pages' ), 999 );
 		add_filter( 'show_password_fields', array( $this, 'disable_passwords' ) );
 	    add_filter( 'allow_password_reset', array( $this, 'disable_passwords' ) );
 	    add_action( 'personal_options_update', array( $this, 'disable_email_editing' ), 1 );
