@@ -72,6 +72,7 @@ class Demo_WP {
 			//add_action( 'admin_bar_menu', array( self::$instance, 'add_menu_bar_reset' ), 999 );
 
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
+			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
 
 			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 		}
@@ -178,6 +179,19 @@ class Demo_WP {
 	}
 
 	/**
+	 * Enqueue our display (front-end) JS
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function display_js() {
+		wp_enqueue_script( 'jquery-countdown',
+			DEMO_WP_URL .'assets/js/jquery.countdown.js',
+			array( 'jquery' ) );
+	}
+
+	/**
 	 * Enqueue our display (front-end) CSS
 	 *
 	 * @access public
@@ -185,7 +199,8 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function display_css() {
-		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/display.css');
+		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/display.css' );
+		wp_enqueue_style( 'jquery-countdown', DEMO_WP_URL .'assets/css/jQuery-countdown.css' );
 	}
 
 	/**
@@ -301,9 +316,42 @@ class Demo_WP {
 	 * @return bool
 	 */
 	public function is_sandbox() {
-		return is_main_site();
+		if ( is_main_site() ) {
+			return false;
+		} else {
+			return true;
+		}
 	}
-}
+
+	/**
+	 * Convert seconds into hours:minutes:seconds
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return array $time
+	 */
+	public function convert_seconds( $seconds ) {
+
+	    // extract hours
+	    $hours = floor($seconds / (60 * 60));
+	 
+	    // extract minutes
+	    $divisor_for_minutes = $seconds % (60 * 60);
+	    $minutes = floor($divisor_for_minutes / 60);
+	 
+	    // extract the remaining seconds
+	    $divisor_for_seconds = $divisor_for_minutes % 60;
+	    $seconds = ceil($divisor_for_seconds);
+	 
+	    // return the final array
+	    $time = array(
+	        "h" => (int) $hours,
+	        "m" => (int) $minutes,
+	        "s" => (int) $seconds,
+	    );
+	    return $time;
+	}
+} // End Class
 
 /**
  * The main function responsible for returning the one true Demo_WP

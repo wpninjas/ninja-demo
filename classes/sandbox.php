@@ -262,11 +262,9 @@ class Demo_WP_Sandbox {
 	    $sites = array();
 	    $redirect = false;
 	    foreach ( $blogs as $blog ) {
-	    	
-			$life = $this->get_time_left( $blog->blog_id );
-	   		
+
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( $life == false ) {
+	   		if ( ! $this->get_time_left( $blog->blog_id ) ) {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
@@ -286,18 +284,56 @@ class Demo_WP_Sandbox {
 	 * 
 	 * @access public
 	 * @since 1.0
-	 * @return int $life
+	 * @return int $remaining_life
 	 */
 	public function get_time_left( $blog_id = '' ) {
 		if ( $blog_id == '' )
 			$blog_id = get_current_blog_id();
 
 		$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog_id );
-		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog->blog_id )->registered );
-		if ( $life >= $lifespan ) {
-			return false;
+		$life = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog_id )->registered );
+
+		$remaining_life = $lifespan - $life;
+		if ( $remaining_life >= 0 ) {
+			return $remaining_life;
 		} else {
-			return $life;
+			return false;
+		}
+	}
+
+	/**
+	 * Get the end time for our sandbox
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return int $end_time;
+	 */
+	public function get_end_time( $blog_id = '' ) {
+		if ( $blog_id == '' )
+			$blog_id = get_current_blog_id();
+
+		$lifespan = apply_filters( 'dwp_sandbox_lifespan', Demo_WP()->settings['lifespan'], $blog_id );
+		$end_time = strtotime( get_blog_details( $blog_id )->registered ) + $lifespan;
+
+		return $end_time;
+	}
+
+	/**
+	 * Check to see if a sandbox is alive
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return bool
+	 */
+	public function is_alive( $blog_id = '' ) {
+		if ( $blog_id == '' )
+			$blog_id = get_current_blog_id();
+
+		$details = get_blog_details( $blog_id );
+		if ( $details !== false ) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 
@@ -312,16 +348,16 @@ class Demo_WP_Sandbox {
 
 		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
 		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
-			$details = get_blog_details( $_SESSION['demo_wp_sandbox'] );
-			if ( $details === false ) {
-				unset( $_SESSION['demo_wp_sandbox'] );
-				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
-				die();
-			} else {
+
+			if ( $this->is_alive( $_SESSION['demo_wp_sandbox'] ) ) {
 				if ( is_main_site() ) {
 					wp_redirect( get_blog_details( $_SESSION['demo_wp_sandbox'] )->siteurl );
 					die;
 				}
+			} else {
+				unset( $_SESSION['demo_wp_sandbox'] );
+				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+				die();
 			}
 		}
 

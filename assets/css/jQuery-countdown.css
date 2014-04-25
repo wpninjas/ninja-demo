@@ -1,0 +1,30 @@
+.countdown.styled{
+  margin-bottom: 50px;
+}
+.countdown.styled div {
+  font: 13px/1.4 'Helvetica Neue', 'Helvetica','Arial', sans-serif;
+  color: #333;
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 30px;
+  font-weight: 100;
+  line-height: 1;
+  text-align: right;
+}
+/* IE7 inline-block hack */
+*+html .countdown.styled div{
+  display: inline;
+  zoom: 1;
+}
+.countdown.styled div:first-child {
+  margin-left: 0;
+}
+.countdown.styled div span {
+  display: block;
+  border-top: 1px solid #cecece;
+  padding-top: 3px;
+  font-size: 12px;
+  font-weight: normal;
+  text-transform: uppercase;
+  text-align: left;
+}

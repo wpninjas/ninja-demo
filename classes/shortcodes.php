@@ -24,14 +24,15 @@ class Demo_WP_Shortcodes {
 	 */
 	public function __construct() {
 		add_shortcode( 'dwp_try_demo', array( $this, 'try_button' ) );
+		add_shortcode( 'dwp_countdown', array( $this, 'countdown' ) );
 	}
 
 	/**
 	 * Shortcode function that outputs a button for users to try the demo/create a new sandbox.
 	 *
-	 * @since 1.0
 	 * @access public
-	 * @return void
+	 * @since 1.0
+	 * @return string $output
 	 */
 	public function try_button() {
 		$spam_q = $this->get_spam_question();
@@ -121,15 +122,15 @@ class Demo_WP_Shortcodes {
 		</div>
 		<?php
 		} // End is_main_site check
-		$return = ob_get_clean();
-		return $return;
+		$output = ob_get_clean();
+		return $output;
 	}
 
 	/**
 	 * Generate our anti-spam question
 	 *
-	 * @since 1.0
 	 * @access private
+	 * @since 1.0
 	 * @return string $eq Our anti-spam equation
 	 */
 	private function get_spam_question() {
@@ -148,8 +149,8 @@ class Demo_WP_Shortcodes {
 	/**
 	 * Return the answer to our generated anti-spam question
 	 *
-	 * @since 1.0
 	 * @access private
+	 * @since 1.0
 	 * @return string $answer
 	 */
 	private function get_spam_answer( $eq ) {
@@ -164,8 +165,8 @@ class Demo_WP_Shortcodes {
 	/**
 	 * Store our anti-spam answer in a transient and return the transient ID
 	 *
-	 * @since 1.0
 	 * @access private
+	 * @since 1.0
 	 * @return string $tid Our transient ID
 	 */
 	private function set_transient( $value ) {
@@ -178,5 +179,37 @@ class Demo_WP_Shortcodes {
 			set_transient( $key, $value, 300 );
 		}
 		return $key;
+	}
+
+	/**
+	 * Display a countdown for the user, informing them how much time their sandbox has left.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return string $output
+	 */
+	public function countdown() {
+		// Get the time that our sandbox expires.
+		$end_time = Demo_WP()->sandbox->get_end_time();
+		$end_time = date( 'Y-m-d g:i:a', $end_time );
+
+		ob_start();
+		?>
+		<div class="countdown styled"></div>
+
+		<script type="text/javascript">
+			jQuery(document).ready(function($) {
+		        $('.countdown.styled').countdown({
+		          date: "<?php echo $end_time; ?>",
+		          render: function(data) {
+		            $(this.el).html("<div>" + this.leadingZeros(data.hours, 2) + " <span>hrs</span></div><div>" + this.leadingZeros(data.min, 2) + " <span>min</span></div><div>" + this.leadingZeros(data.sec, 2) + " <span>sec</span></div>");
+		          }
+		        });
+			});
+		</script>
+
+		<?php
+		$output = ob_get_clean();
+		return $output;
 	}
 }
