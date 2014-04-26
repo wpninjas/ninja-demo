@@ -302,7 +302,6 @@ class Demo_WP_Admin {
 
 					Demo_WP()->settings['offline'] = $_POST['offline'];
 					Demo_WP()->settings['prevent_clones'] = $_POST['prevent_clones'];
-					Demo_WP()->settings['lifespan'] = $_POST['lifespan'];
 					Demo_WP()->settings['log'] = $_POST['log'];
 					Demo_WP()->settings['auto_login'] = $_POST['auto_login'];
 
