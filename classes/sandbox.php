@@ -134,14 +134,12 @@ class Demo_WP_Sandbox {
 
 		$blog = get_blog_details( $blog_id );
 		/**
-		 * Fires before a blog is deleted.
-		 *
-		 * @since MU
+		 * Fires before a sandbox is deleted.
 		 *
 		 * @param int  $blog_id The blog ID.
 		 * @param bool $drop    True if blog's table should be dropped. Default is false.
 		 */
-		do_action( 'delete_blog', $blog_id, $drop );
+		do_action( 'dwp_delete_sandbox', $blog_id, $drop );
 
 		$users = get_users( array( 'blog_id' => $blog_id, 'fields' => 'ids' ) );
 
@@ -271,7 +269,7 @@ class Demo_WP_Sandbox {
 	    foreach ( $blogs as $blog ) {
 
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( $this->has_expired( $blog->blog_id ) ) {
+	   		if ( apply_filters( 'dwp_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
