@@ -37,6 +37,8 @@ class Demo_WP_IP_Lockout {
 
 		// Set a lockout for this IP for twenty minutes.
 		$wpdb->insert( $wpdb->prefix .'demo_wp_ip_lockout', array( 'ip' => $ip, 'time_set' => current_time( 'timestamp' ), 'time_expires' => strtotime( '+20 minutes', current_time( 'timestamp' ) ) ) );
+	
+		do_action( 'dwp_ip_lockout', $ip );
 	}
 
 	/**
