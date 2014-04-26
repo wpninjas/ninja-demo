@@ -87,8 +87,7 @@ class Demo_WP_Restrictions {
 		global $pagenow;
 
 		if ( ! Demo_WP()->is_admin_user() ) {
-
-			$pages = apply_filters( 'dwp_prevent_access', array( 'options.php', 'my-sites.php' ) );
+			$pages = apply_filters( 'dwp_prevent_access', array( 'my-sites.php' ) );
 
 			// Remove our menu links.
 			Demo_WP()->settings['parent_pages'][] = 'plugins.php';
@@ -111,6 +110,7 @@ class Demo_WP_Restrictions {
   			// If we are on any of these pages, then throw an error.
   			if ( in_array( $pagenow, $pages ) || ( isset ( $_REQUEST['page'] ) && in_array( $_REQUEST['page'], $pages ) ) )
   				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+
 		}
 	}
 
