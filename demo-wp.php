@@ -3,7 +3,7 @@
 Plugin Name: Demo WP Pro
 Plugin URI: http://demowp.pro
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 0.1
+Version: 0.2
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: demo-wp
