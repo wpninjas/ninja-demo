@@ -28,6 +28,8 @@ class Demo_WP_Shortcodes {
 
 		add_shortcode( 'is_sandbox', array( $this, 'is_sandbox' ) );
 		add_shortcode( 'is_not_sandbox', array( $this, 'is_not_sandbox' ) );
+
+		add_shortcode( 'is_sandbox_expired', array( $this, 'is_sandbox_expired' ) );
 	}
 
 	/**
@@ -295,6 +297,21 @@ class Demo_WP_Shortcodes {
 	 */
 	public function is_not_sandbox( $atts, $content = null ) {
 		if ( ! Demo_WP()->is_sandbox() ) {
+			return $content;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * is_sandbox_expired shortcode
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return string $content or bool(false)
+	 */
+	public function is_sandbox_expired( $atts, $content = null ) {
+		if ( isset ( $_REQUEST['sandbox_expired'] ) && $_REQUEST['sandbox_expired'] == 1 ) {
 			return $content;
 		} else {
 			return false;

@@ -230,6 +230,8 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function activation() {
+		global $wpdb;
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		if ( get_option( 'demo_wp' ) == false ) {
 			$args = array(
 				'offline' 			=> 0,
@@ -242,6 +244,15 @@ class Demo_WP {
 			update_option( 'demo_wp', $args );
 		}
 		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'dwp_hourly' );
+		$sql = "CREATE TABLE IF NOT EXISTS ". $wpdb->prefix . "demo_wp_ip_lockout (
+			`id` bigint(20) NOT NULL AUTO_INCREMENT,
+			`ip` text NOT NULL,
+			`time_set` int(255) NOT NULL,
+			`time_expires` int(255) NOT NULL,
+		  PRIMARY KEY (`id`)
+		) ENGINE=InnoDB  DEFAULT CHARSET=utf8;";
+		
+		dbDelta($sql);
 	}
 
 	/**
@@ -283,8 +294,8 @@ class Demo_WP {
 	 */
 	public function recursive_array_search( $needle, $haystack ) {
 	    foreach( $haystack as $key => $value ) {
-	        $current_key=$key;
-	        if( $needle === $value OR ( is_array( $value ) && self::$instance->recursive_array_search( $needle,$value ) !== false ) ) {
+	        $current_key = $key;
+	        if( $needle === $value OR ( is_array( $value ) && self::$instance->recursive_array_search( $needle, $value ) !== false ) ) {
 	            return $current_key;
 	        }
 	    }
@@ -306,6 +317,20 @@ class Demo_WP {
 			return true;
 		}
 	}
+
+	/**
+	 * Decode HTML entities within an array
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return array $value
+	 */
+	public function html_entity_decode_deep( $value ) {
+    	$value = is_array($value) ?
+	        array_map( array( self::$instance, 'html_entity_decode_deep' ), $value ) :
+	        html_entity_decode( $value );
+    	return $value;
+	}	
 
 } // End Class
 

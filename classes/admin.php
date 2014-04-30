@@ -38,9 +38,13 @@ class Demo_WP_Admin {
 	 * @return void
 	 */
 	public function add_menu_page() {
-		$page = add_menu_page( "Demo WP PRO" , __( 'Demo WP PRO', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_network_options' ), "demo-wp", array( $this, "output_admin_page" ), "", "32.1337" );
+		$page = add_menu_page( __( 'Demo WP PRO', 'demo-wp' ) , __( 'Demo WP PRO', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_network_options' ), 'demo-wp', array( $this, "output_admin_page" ), "", "32.1337" );
 		add_action( 'admin_print_styles-' . $page, array( $this, 'admin_css' ) );
+
+		$sub_page = add_submenu_page( 'demo-wp', __( 'Demo WP PRO', 'demo-wp' ) , __( 'Settings', 'demo-wp' ), apply_filters( 'dwp_admin_menu_capabilities', 'manage_network_options' ), 'demo-wp' );
+		add_action( 'admin_print_styles-' . $sub_page, array( $this, 'admin_css' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_js' ) );
+
 	}
 
 	/**
@@ -79,7 +83,7 @@ class Demo_WP_Admin {
 	 */
 	public function output_admin_page() {
 		global $menu, $submenu;
-
+		$sub_menu = Demo_WP()->html_entity_decode_deep( $submenu );
 		?>
 		<form id="demo_wp_admin" enctype="multipart/form-data" method="post" name="" action="">
 			<input type="hidden" name="demo_wp_submit" value="1">
@@ -170,25 +174,24 @@ class Demo_WP_Admin {
 							</table>
 
 							<h2><?php _e( 'Restriction Settings', 'demo-wp' ); ?></h2>
-							<h3><?php _e( 'Prevent users from accessing these pages', 'demo-wp' ); ?></h3>
+							<h3><?php _e( 'Whitelist: allow users to accessing these pages', 'demo-wp' ); ?></h3>
 							<div class="dwp-admin-restrict">
 								<input type="hidden" name="demo_wp_parent_pages[]" value="">
 								<input type="hidden" name="demo_wp_child_pages[]" value="">
 							<?php
-							
 							foreach( $menu as $page ) {
 								if ( isset ( $page[0] ) && $page[0] != '' && $page[2] != 'demo-wp' && $page[2] != 'plugins.php' ) {
 									$parent_slug = $page[2];
 									$class_name = str_replace( '.', '', $parent_slug );
 									?>
 									<div class="dwp-parent-div box">
-										<h4><label><input type="checkbox" name="demo_wp_parent_pages[]" value="<?php echo $page[2];?>" class="demo-wp-parent" <?php checked( in_array( $page[2], Demo_WP()->settings['parent_pages'] ) ); ?>> <?php echo $page[0]; ?></label></h4>
+										<h4><label><input type="checkbox" name="demo_wp_parent_pages[]" value="<?php echo $page[2];?>" class="demo-wp-parent" <?php checked( in_array( $page[2], Demo_WP()->settings['parent_pages'] ) ); if ( $parent_slug == 'index.php' ) { echo 'disabled="disabled"'; } ?> > <?php echo $page[0]; ?></label></h4>
 									<?php
-									if ( isset ( $submenu[ $parent_slug ] ) ) {
+									if ( isset ( $sub_menu[ $parent_slug ] ) ) {
 										?>
 										<ul style="margin-left:30px;">
 										<?php
-										foreach( $submenu[ $parent_slug ] as $subpage ) {
+										foreach( $sub_menu[ $parent_slug ] as $subpage ) {
 											$found = false;
 											foreach ( Demo_WP()->settings['child_pages'] as $child_page ) {
 												if ( $child_page['child'] == $subpage[2] ) {
@@ -203,7 +206,7 @@ class Demo_WP_Admin {
 												$checked = '';
 											}
 											?>
-											<li><label><input type="checkbox" name="demo_wp_child_pages[]" value="<?php echo $subpage[2]; ?>" <?php echo $checked; ?>> <?php echo $subpage[0]; ?></label></li>
+											<li><label><input type="checkbox" name="demo_wp_child_pages[]" value="<?php echo $subpage[2]; ?>" <?php echo $checked; if ( $subpage[2] == 'index.php' ) { echo 'disabled="disabled"'; } ?>> <?php echo $subpage[0]; ?></label></li>
 											<?php
 										}
 										?>
@@ -247,7 +250,7 @@ class Demo_WP_Admin {
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$( document ).on( 'click', '#delete_all_sandboxes', function( e ) {
-					var answer = confirm( '<?php _e( 'Really delete all sanboxes?', 'demo-wp' ); ?>' );
+					var answer = confirm( '<?php _e( 'Really delete all sandboxes?', 'demo-wp' ); ?>' );
 					return answer;
 				});
 				$( document ).on( 'change', '.demo-wp-parent', function() {
@@ -273,6 +276,7 @@ class Demo_WP_Admin {
 	 */
 	public function save_admin_page() {
 		global $menu, $submenu;
+		$sub_menu = Demo_WP()->html_entity_decode_deep( $submenu );
 		if ( Demo_WP()->is_admin_user() ) {
 			if ( isset ( $_POST['demo_wp_admin_submit'] ) ) {
 				$nonce = $_POST['demo_wp_admin_submit'];
@@ -290,8 +294,9 @@ class Demo_WP_Admin {
 
 					if ( isset ( $_POST['demo_wp_child_pages'] ) ) {
 						$child_pages = array();
+
 						foreach( $_POST['demo_wp_child_pages'] as $page ) {
-							$key = Demo_WP()->recursive_array_search( $page, $submenu );
+							$key = Demo_WP()->recursive_array_search( $page, $sub_menu );
 							$child_pages[] = array( 'parent' => $key, 'child' => $page );
 						}
 						Demo_WP()->settings['child_pages'] = $child_pages;

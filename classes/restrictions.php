@@ -63,7 +63,7 @@ class Demo_WP_Restrictions {
 				}
 			} else {
 				unset( $_SESSION['demo_wp_sandbox'] );
-				wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+				wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
 				die();
 			}
 		}
@@ -71,7 +71,7 @@ class Demo_WP_Restrictions {
 		// If this user is on the main blog and logged-in in a sandbox, then log them out.
 		if ( is_user_logged_in() && ! Demo_WP()->is_sandbox() && ! Demo_WP()->is_admin_user() ) {
 			wp_logout();
-			wp_redirect( add_query_arg( array( 'expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+			wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
 			die();
 		}
 	}
@@ -84,33 +84,135 @@ class Demo_WP_Restrictions {
 	 * @return void
 	 */
 	public function remove_pages() {
-		global $pagenow;
+		global $menu, $pagenow, $submenu;
+		
+		if ( ! Demo_WP()->is_admin_user() && is_admin() ) {
+			$sub_menu = Demo_WP()->html_entity_decode_deep( $submenu );
+			$allowed_pages = apply_filters( 'dwp_allowed_pages', array( 'options.php', 'index.php' ) );
+			$allowed_cpts = array();
+			$allowed_cts = array();
+			Demo_WP()->settings['parent_pages'][] = 'index.php';
 
-		if ( ! Demo_WP()->is_admin_user() ) {
-			$pages = apply_filters( 'dwp_prevent_access', array( 'my-sites.php' ) );
+			$allowed_menu_links = apply_filters( 'dwp_show_menu_pages', Demo_WP()->settings['parent_pages'] );
+			$allowed_submenu_links = apply_filters( 'dwp_show_submenu_pages', Demo_WP()->settings['child_pages'] );
 
-			// Remove our menu links.
-			Demo_WP()->settings['parent_pages'][] = 'plugins.php';
-			Demo_WP()->settings['parent_pages'][] = 'demo-wp';
-			$menu_links = apply_filters( 'dwp_hide_menu_pages', Demo_WP()->settings['parent_pages'] );
+			foreach ( $menu as $item ) {
+				$parent_slug = $item[2];
+				if ( ! in_array( $parent_slug, $allowed_menu_links ) ) {
+					remove_menu_page( $parent_slug );
+				} else {
+					$allowed_pages[] = $parent_slug;
+				}
 
-			$submenu_links = apply_filters( 'dwp_hide_submenu_pages', Demo_WP()->settings['child_pages'] );
-			$submenu_links[] = array( 'parent' => 'index.php', 'child' => 'my-sites.php' );
+				if ( isset ( $sub_menu[ $parent_slug ] ) ) {
+					foreach( $sub_menu[ $parent_slug ] as $sub_item ) {
+						$child_slug = $sub_item[2];
+						$found = false;
+						foreach ( $allowed_submenu_links as $allowed_submenu ) {
+							if ( $allowed_submenu['parent'] == $parent_slug && $allowed_submenu['child'] == $child_slug ) {
 
-			foreach( $menu_links as $page ) {
-				remove_menu_page( $page );
-				$pages[] = $page;
+								if ( strpos( $allowed_submenu['child'], 'post_type=' ) !== false ) {
+									// Get our post type from our string.
+									$start = strpos( $allowed_submenu['child'], 'post_type=' ) + 10;
+									$end = strpos( $allowed_submenu['child'], '&', $start );
+									$length = $end - $start;
+									if ( $end !== false ) {
+										$substr = substr( $allowed_submenu['child'], $start, $length );
+									} else {
+										$substr = substr( $allowed_submenu['child'], $start );
+									}
+									
+									$post_type = $substr;
+
+								} else {
+									// Default to the 'post' post_type.
+									$post_type = 'post';
+								}
+
+								// Check to see if we also have a taxonomy in the string.
+								if ( strpos( $allowed_submenu['child'], 'taxonomy=' ) !== false ) {
+									// Get our custom taxonomy from our string.
+									$start = strpos( $allowed_submenu['child'], 'taxonomy=' ) + 9;
+									$end = strpos( $allowed_submenu['child'], '&', $start );
+									$length = $end - $start;
+									if ( $end !== false ) {
+										$substr = substr( $allowed_submenu['child'], $start, $length );
+									} else {
+										$substr = substr( $allowed_submenu['child'], $start );
+									}
+									
+									$taxonomy = $substr;
+								}
+
+								if ( strpos( $allowed_submenu['child'], 'edit.php' ) !== false ) {
+									$allowed_cpts[ $post_type ]['edit'] = 1;
+								} else if ( strpos( $allowed_submenu['child'], 'post-new.php' ) !== false ) {
+									$allowed_cpts[ $post_type ]['new'] = 1;
+								} else if ( strpos( $allowed_submenu['child'], 'edit-tags.php' ) !== false ) {
+									$allowed_cts[ $post_type ][ $taxonomy ]['edit'] = 1;
+								}
+
+								$found = true;
+							}
+						}
+						if ( $found ) {
+							$allowed_pages[] = $child_slug;							
+						} else {
+							remove_submenu_page( htmlentities( $parent_slug ), htmlentities( $child_slug ) );
+						}				
+					}
+				}
 			}
+			// Filter our allowed list of custom post types.
+			$allowed_cpts = apply_filters( 'dwp_allowed_cpts', $allowed_cpts );			
 
-			foreach( $submenu_links as $page ) {
-				remove_submenu_page( $page['parent'], $page['child'] );
-				$pages[] = $page['child'];
+			// Filter our allowed list of custom taxonomies.
+			$allowed_cts = apply_filters( 'dwp_allowed_cpts', $allowed_cts );
+
+			// Get our current post type.
+			if ( ! isset ( $_REQUEST['post_type'] ) ) {
+				if ( isset ( $_REQUEST['post'] ) ) {
+					$post_type = get_post_type( $_REQUEST['post'] );
+				} else {
+					$post_type = 'post';
+				}
+			} else {
+				$post_type = $_REQUEST['post_type'];
+			}			
+
+			// Get our current taxonomy.
+			if ( isset ( $_REQUEST['taxonomy'] ) ) {
+				$taxonomy = $_REQUEST['taxonomy'];
 			}
+ 
+			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 
-  			// If we are on any of these pages, then throw an error.
-  			if ( in_array( $pagenow, $pages ) || ( isset ( $_REQUEST['page'] ) && in_array( $_REQUEST['page'], $pages ) ) )
-  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+				}
 
+			} else if ( $pagenow == 'post-new.php' ) {
+
+				if ( ! isset ( $allowed_cpts[ $post_type ]['new'] ) || $allowed_cpts[ $post_type ]['new'] != 1 ) {
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+				}
+
+			} else if ( $pagenow == 'edit-tags.php' ) {
+
+				if ( ! isset ( $allowed_cts[ $post_type ][ $taxonomy ]['edit'] ) || $allowed_cts[ $post_type ][ $taxonomy ]['edit'] != 1 ) {
+					// echo "<pre>";
+					// var_dump ( $allowed_cts );
+					// echo "</pre>";
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+				}
+
+			} else {
+
+	  			$page_now = basename( add_query_arg( array() ) );
+
+	  			if ( ! in_array( $page_now, $allowed_pages ) && $page_now != 'wp-admin' )
+	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );				
+			}
 		}
 	}
 

@@ -46,6 +46,7 @@ class Demo_WP_Sandbox {
 		add_action( 'dwp_hourly', array( $this, 'purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 		add_action( 'init', array( $this, 'reset_listen' ) );
+		add_action( 'init', array( $this, 'update_state' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_menu_bar_reset' ), 999 );
 
 		//define which tables to skip by default when cloning root site
@@ -126,6 +127,9 @@ class Demo_WP_Sandbox {
 	public function delete( $blog_id, $drop = true ) {
 		global $wpdb;
 
+		// Make sure that our blog_id is an integer.
+		$blog_id = intval( $blog_id );
+
 		$switch = false;
 		if ( get_current_blog_id() != $blog_id ) {
 			$switch = true;
@@ -139,7 +143,7 @@ class Demo_WP_Sandbox {
 		 * @param int  $blog_id The blog ID.
 		 * @param bool $drop    True if blog's table should be dropped. Default is false.
 		 */
-		do_action( 'dwp_delete_sandbox', $blog_id, $drop );
+		do_action( 'dwp_delete_sandbox', $blog_id );
 
 		$users = get_users( array( 'blog_id' => $blog_id, 'fields' => 'ids' ) );
 
@@ -237,8 +241,9 @@ class Demo_WP_Sandbox {
 		// Delete our stored $_SESSION variable
 		unset( $_SESSION['demo_wp_sandbox'] );
 
-		// Logout our current use
-		wp_logout();
+		// Logout our current user
+		if ( ! Demo_WP()->is_admin_user() )
+			wp_logout();
 
 		if ( $switch )
 			restore_current_blog();
@@ -341,6 +346,18 @@ class Demo_WP_Sandbox {
 		}
 	}
 
+	/**
+	 * Update our sandbox active state when we load a page.
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function update_state() {
+		global $wpdb;
+		if ( Demo_WP()->is_sandbox() )
+			$wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => get_current_blog_id() ) );
+	}
 
 	/**
 	 * Listen for the sandbox reset $_REQUEST data
@@ -513,12 +530,12 @@ class Demo_WP_Sandbox {
 			}
 			else {
 				$main_uploads_target = WP_CONTENT_DIR . '/uploads/sites/' . $target_id;
-				$main_uploads_replace = '/wp-content/uploads/sites/' . $target_id;
+				$main_uploads_replace = $main_uploads_info['baseurl'] . '/wp-content/uploads/sites/' . $target_id;
 			}
 			$replace_array[$main_uploads_dir] = $main_uploads_replace;
 			// debugging ----------------------------
-			//$report .= 'Search Source Dir: <b>' . $main_uploads_dir . '</b><br />';
-			//$report .= 'Replace Target Dir: <b>' . $main_uploads_replace . '</b><br />';
+			$report .= 'Search Source Dir: <b>' . $main_uploads_dir . '</b><br />';
+			$report .= 'Replace Target Dir: <b>' . $main_uploads_replace . '</b><br />';
 			// --------------------------------------
 			//reset the option_name = wp_#_user_roles row in the wp_#_options table back to the id of the target site
 			$replace_array[$wpdb->base_prefix . 'user_roles'] = $wpdb->base_prefix . $target_id . '_user_roles';
@@ -575,24 +592,10 @@ class Demo_WP_Sandbox {
 			$report .= 'To: <b>' . $dst_blogs_dir . '</b><br />';
 		}
 		// ---------------------------------------------------------------------------------------------------------------
-		// Report
+		
 
-		//echo '<p style="margin:auto; text-align:center">';
-		//Demo_WP()->logs->dlog ( $report );
-
-		//  End TIMER
-		//  ---------
-		$etimer = explode( ' ', microtime() );
-		$etimer = $etimer[1] + $etimer[0];
-		Demo_WP()->logs->log ( $target_subd . " cloned in " . ($etimer-$stimer) . " seconds."  );
-		Demo_WP()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
-		//echo '</p>';
-		//  ---------
-
-		// Report on what was accomplished
-		// $this->status = $this->status . $report . "Entire cloning process took: <strong>" . number_format(($etimer-$stimer), 4) . "</strong> seconds... <br />";
-		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->log_file_url . '" target="_blank">Historical Log</a> || ';
-		// $this->status = $this->status . '<a href="' . Demo_WP()->logs->detail_log_file_url . '" target="_blank">Detailed Log</a> ';
+		//Switch to our new blog.
+		switch_to_blog( $this->target_id );
 
 		$_SESSION['demo_wp_sandbox'] = $this->target_id;
 
@@ -609,7 +612,26 @@ class Demo_WP_Sandbox {
 	    // Set our "last updated" time to the current time.
 	    $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => $this->target_id ) );
 
+	    // Get a list of our active plugins.
+	    $plugins = get_option( 'active_plugins' );
+
+		deactivate_plugins( $plugins );
+		activate_plugins( $plugins );
+
 		do_action( 'dwp_create_sandbox', $this->target_id );
+
+		// Report
+
+		//echo '<p style="margin:auto; text-align:center">';
+		Demo_WP()->logs->dlog ( $report );
+
+		//  End TIMER
+		//  ---------
+		$etimer = explode( ' ', microtime() );
+		$etimer = $etimer[1] + $etimer[0];
+		Demo_WP()->logs->log ( $target_subd . " cloned in " . ($etimer-$stimer) . " seconds."  );
+		Demo_WP()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
+		//  ---------
 
 		wp_redirect( $site_address );
 		die;
