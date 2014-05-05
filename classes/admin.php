@@ -315,6 +315,7 @@ class Demo_WP_Admin {
 				} else if ( isset ( $_POST['delete_all_sandboxes'] ) ) {
 					Demo_WP()->sandbox->delete_all();
 				}
+				Demo_WP()->purge_wpengine_cache();
 			}
 		}
 	}

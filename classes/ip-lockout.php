@@ -33,10 +33,10 @@ class Demo_WP_IP_Lockout {
 		global $wpdb;
 
 		// Delete any lockouts that this IP may have.
-		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $wpdb->prefix .'demo_wp_ip_lockout WHERE ip = %s', $ip ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . DEMO_WP_IP_LOCKOUT_TABLE . ' WHERE ip = %s', $ip ) );
 
 		// Set a lockout for this IP for twenty minutes.
-		$wpdb->insert( $wpdb->prefix .'demo_wp_ip_lockout', array( 'ip' => $ip, 'time_set' => current_time( 'timestamp' ), 'time_expires' => strtotime( '+20 minutes', current_time( 'timestamp' ) ) ) );
+		$wpdb->insert( DEMO_WP_IP_LOCKOUT_TABLE, array( 'ip' => $ip, 'time_set' => current_time( 'timestamp' ), 'time_expires' => strtotime( '+20 minutes', current_time( 'timestamp' ) ) ) );
 	
 		do_action( 'dwp_ip_lockout', $ip );
 	}
@@ -73,7 +73,7 @@ class Demo_WP_IP_Lockout {
 	public function get_ip_lockout( $ip ) {
 		global $wpdb;
 
-		$expires = $wpdb->get_row( $wpdb->prepare( 'SELECT time_expires FROM ' . $wpdb->prefix .'demo_wp_ip_lockout WHERE ip = %s', $ip ), ARRAY_A );
+		$expires = $wpdb->get_row( $wpdb->prepare( 'SELECT time_expires FROM ' . DEMO_WP_IP_LOCKOUT_TABLE . ' WHERE ip = %s', $ip ), ARRAY_A );
 		return $expires['time_expires'];
 	}
 
@@ -87,6 +87,6 @@ class Demo_WP_IP_Lockout {
 	public function free_ip( $ip ) {
 		global $wpdb;
 
-		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $wpdb->prefix .'demo_wp_ip_lockout WHERE ip = %s', $ip ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . DEMO_WP_IP_LOCKOUT_TABLE . ' WHERE ip = %s', $ip ) );
 	}
 }

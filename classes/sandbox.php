@@ -55,7 +55,7 @@ class Demo_WP_Sandbox {
 			'usermeta','users', //don't copy users
 			'bp_.*', //buddypress tables
 			'3wp_broadcast_.*', //3wp broadcast tables
-			'demo_wp_ip_lockout' // Demo WP IP lockout table
+			DEMO_WP_IP_LOCKOUT_TABLE // Demo WP IP lockout table
 		) );
 	}
 
@@ -476,8 +476,9 @@ class Demo_WP_Sandbox {
 			// Add support for ThreeWP Broadcast plugin
 			// Thank you John @ propanestudio.com and Aamir
 			// getting already added broad cast id of source id from database
-			$myrows = $wpdb->get_results( 'SELECT * FROM '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata where blog_id='.$source_id.'',ARRAY_A );
+			// $myrows = $wpdb->get_results( 'SELECT * FROM '.$source_pre.'_3wp_broadcast_broadcastdata where blog_id='.$source_id.'',ARRAY_A );
 			// loop to each data row
+			/*
 			foreach($myrows as $r){
 				if($r['blog_id'] != ""){ // if blog id not empty
 					$dd=unserialize(base64_decode($r['data'])); // decode the data and unserilize this and store into varibale
@@ -494,7 +495,7 @@ class Demo_WP_Sandbox {
 					$wpdb->query('INSERT into '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET blog_id='.$target_id.',post_id='.$r['post_id'].',data="'.$r['data'].'"');
 				}
 			}
-
+			*/
 			//clone
 			$this->run_clone($source_pre, $target_pre);
 		}

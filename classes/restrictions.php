@@ -42,7 +42,8 @@ class Demo_WP_Restrictions {
 	 * @return void
 	 */
 	public function offline_check() {
-		if ( ! Demo_WP()->is_admin_user() && Demo_WP()->settings['offline'] == 1 )
+		$current_url = add_query_arg( array() );
+		if ( Demo_WP()->settings['offline'] == 1 && ! Demo_WP()->is_admin_user() && ( ( ! Demo_WP()->is_sandbox() && strpos ( $current_url, '/wp-admin/' ) === false && strpos ( $current_url, 'wp-login.php' ) === false ) || Demo_WP()->is_sandbox() ) )
 			wp_die( 'The demo is currently offline.', 'demo-wp' );
 	}
 

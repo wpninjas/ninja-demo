@@ -3,7 +3,7 @@
 Plugin Name: Demo WP Pro
 Plugin URI: http://demowp.pro
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 0.2
+Version: 0.4
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: demo-wp
@@ -116,6 +116,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function setup_constants() {
+		global $wpdb;
 
 		// Plugin version
 		if ( ! defined( 'DEMO_WP_VERSION' ) ) {
@@ -135,6 +136,13 @@ class Demo_WP {
 		// Plugin Root File
 		if ( ! defined( 'DEMO_WP_FILE' ) ) {
 			define( 'DEMO_WP_FILE', __FILE__ );
+		}
+
+		// Lockout IP Table name
+		if ( ! defined( 'DEMO_WP_IP_LOCKOUT_TABLE' ) ) {
+			switch_to_blog( 1 );
+			define( 'DEMO_WP_IP_LOCKOUT_TABLE', $wpdb->prefix . 'demo_ip_lockout' );
+			restore_current_blog();
 		}
 	}
 
@@ -244,7 +252,7 @@ class Demo_WP {
 			update_option( 'demo_wp', $args );
 		}
 		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'dwp_hourly' );
-		$sql = "CREATE TABLE IF NOT EXISTS ". $wpdb->prefix . "demo_wp_ip_lockout (
+		$sql = "CREATE TABLE IF NOT EXISTS ". DEMO_WP_IP_LOCKOUT_TABLE . " (
 			`id` bigint(20) NOT NULL AUTO_INCREMENT,
 			`ip` text NOT NULL,
 			`time_set` int(255) NOT NULL,
