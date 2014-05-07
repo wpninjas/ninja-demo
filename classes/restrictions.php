@@ -32,6 +32,7 @@ class Demo_WP_Restrictions {
 	    add_action( 'personal_options_update', array( $this, 'disable_email_editing' ), 1 );
 	    add_action( 'edit_user_profile_update', array( $this, 'disable_email_editing' ), 1 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_menu_bar_items' ), 999 );
+		add_action( 'delete_blog', array( $this, 'prevent_delete_blog' ), 10, 2 );
 	}
 
 	/**
@@ -273,4 +274,16 @@ class Demo_WP_Restrictions {
 			}
 		}
 	}
+
+	/**
+	 * Prevent a user from deleting the main blog
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function prevent_delete_blog( $blog_id, $drop ) {
+		if ( $blog_id == 1 && ! Demo_WP()->is_admin_user() )
+			wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+	} 
 }
