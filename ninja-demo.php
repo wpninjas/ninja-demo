@@ -250,7 +250,7 @@ class Ninja_Demo {
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		if ( get_option( 'ninja_demo' ) == false ) {
 			$args = array(
-				'offline' 			=> 0,
+				'offline' 			=> 1,
 				'prevent_clones' 	=> 0,
 				'log'				=> 0,
 				'auto_login'		=> '',
