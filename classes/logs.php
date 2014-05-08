@@ -1,11 +1,11 @@
 <?php
 /**
- * Demo_WP_Logs
+ * Ninja_Demo_Logs
  *
  * This class handles saving Sandbox creation logs if we have that option enabled.
  *
  *
- * @package     Demo WP PRO
+ * @package     Ninja Demo
  * @copyright   Copyright (c) 2014, WP Ninjas
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
  * @since       1.0
@@ -14,7 +14,7 @@
  * These unmodified sections are Copywritten 2012 Never Settle
  */
 
-class Demo_WP_Logs {
+class Ninja_Demo_Logs {
 
 	/**
 	 * @var logfile settings
@@ -32,10 +32,10 @@ class Demo_WP_Logs {
 	 * @return void
 	 */
 	public function __construct() {
-		if ( Demo_WP()->settings['log'] == 1 ) {
+		if ( Ninja_Demo()->settings['log'] == 1 ) {
 			// Create the directory to house our log files
-			$log_dir = trailingslashit( WP_CONTENT_DIR . '/dwp-logs' );
-			$log_url = trailingslashit( WP_CONTENT_URL . '/dwp-logs' );
+			$log_dir = trailingslashit( WP_CONTENT_DIR . '/nd-logs' );
+			$log_url = trailingslashit( WP_CONTENT_URL . '/nd-logs' );
 
 			if ( ! is_dir( $log_dir ) )
 				mkdir( $log_dir );
@@ -56,7 +56,7 @@ class Demo_WP_Logs {
 	 * @return void
 	 */
 	public function check_logfile() {
-		if( ! file_exists( $this->log_file ) && Demo_WP()->settings['log'] == 1 ) {
+		if( ! file_exists( $this->log_file ) && Ninja_Demo()->settings['log'] == 1 ) {
 			$handle = fopen( $this->log_file, 'w' ) or printf( __( '<div class="error"><p>Unable to create log file %s. Is its parent directory writable by the server?</p></div>', 'ns-cloner' ), $this->log_file );
 			fclose( $handle );
 		}
@@ -70,7 +70,7 @@ class Demo_WP_Logs {
 	 * @return void
 	 */
 	public function log( $message ) {
-		if ( Demo_WP()->settings['log'] ==1 )
+		if ( Ninja_Demo()->settings['log'] ==1 )
 			error_log( date_i18n( 'Y-m-d H:i:s' ) . " - $message\n", 3, $this->log_file );
 	}
 	
@@ -82,7 +82,7 @@ class Demo_WP_Logs {
 	 * @return void
 	 */
 	function dlog( $message ) {
-		if ( Demo_WP()->settings['log'] ==1 )
+		if ( Ninja_Demo()->settings['log'] ==1 )
 			error_log( date_i18n( 'Y-m-d H:i:s' ) . " - $message\n", 3, $this->detail_log_file );
 	}
 

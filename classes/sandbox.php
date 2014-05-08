@@ -1,11 +1,11 @@
 <?php
 /**
- * Demo_WP_Sandbox
+ * Ninja_Demo_Sandbox
  *
  * This class handles the creation, deletion, and interacting with Sandboxes.
  *
  *
- * @package     Demo WP PRO
+ * @package     Ninja Demo
  * @copyright   Copyright (c) 2014, WP Ninjas
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
  * @since       1.0
@@ -18,7 +18,7 @@
 if ( ! defined( 'ABSPATH' ) )
 	exit;
 
-class Demo_WP_Sandbox {
+class Ninja_Demo_Sandbox {
 
 	/**
 	 * @var Store our database information.
@@ -43,19 +43,19 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'dwp_hourly', array( $this, 'purge' ) );
+		add_action( 'nd_hourly', array( $this, 'purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 		add_action( 'init', array( $this, 'reset_listen' ) );
 		add_action( 'init', array( $this, 'update_state' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_menu_bar_reset' ), 999 );
 
 		//define which tables to skip by default when cloning root site
-		$this->global_tables = apply_filters( 'dwp_global_tables', array(
+		$this->global_tables = apply_filters( 'nd_global_tables', array(
 			'blogs','blog_versions','registration_log','signups','site','sitemeta', //default multisite tables
 			'usermeta','users', //don't copy users
 			'bp_.*', //buddypress tables
 			'3wp_broadcast_.*', //3wp broadcast tables
-			DEMO_WP_IP_LOCKOUT_TABLE // Demo WP IP lockout table
+			ND_IP_LOCKOUT_TABLE // Ninja Demo IP lockout table
 		) );
 	}
 
@@ -67,8 +67,8 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function prevent_clone_check() {
-		if ( ! Demo_WP()->is_admin_user() && Demo_WP()->settings['prevent_clones'] == 1 && is_main_site() )
-			wp_die( 'The demo is currently offline.', 'demo-wp' );
+		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && is_main_site() )
+			wp_die( 'The demo is currently offline.', 'ninja-demo' );
 	}
 
 	/**
@@ -143,7 +143,7 @@ class Demo_WP_Sandbox {
 		 * @param int  $blog_id The blog ID.
 		 * @param bool $drop    True if blog's table should be dropped. Default is false.
 		 */
-		do_action( 'dwp_delete_sandbox', $blog_id );
+		do_action( 'nd_delete_sandbox', $blog_id );
 
 		$users = get_users( array( 'blog_id' => $blog_id, 'fields' => 'ids' ) );
 
@@ -239,10 +239,12 @@ class Demo_WP_Sandbox {
 		}
 
 		// Delete our stored $_SESSION variable
-		unset( $_SESSION['demo_wp_sandbox'] );
+		if ( isset( $_SESSION['ninja_demo_sandbox'] ) ) {
+			unset( $_SESSION['ninja_demo_sandbox'] );
+    	}
 
 		// Logout our current user
-		if ( ! Demo_WP()->is_admin_user() )
+		if ( ! Ninja_Demo()->is_admin_user() )
 			wp_logout();
 
 		if ( $switch )
@@ -274,7 +276,7 @@ class Demo_WP_Sandbox {
 	    foreach ( $blogs as $blog ) {
 
 	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( apply_filters( 'dwp_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
+	   		if ( apply_filters( 'nd_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
 	   			// Check to see if we're currently looking at the blog to be deleted.
 				if ( $blog->blog_id == get_current_blog_id() )
 					$redirect = true;
@@ -299,7 +301,7 @@ class Demo_WP_Sandbox {
 		if ( $blog_id == '' )
 			$blog_id = get_current_blog_id();
 
-		$idle_limit = apply_filters( 'dwp_sandbox_lifespan', 900, $blog_id ); // 900 seconds = 15 minutes
+		$idle_limit = apply_filters( 'nd_sandbox_lifespan', 900, $blog_id ); // 900 seconds = 15 minutes
 		$idle_time = current_time( 'timestamp' ) - strtotime( get_blog_details( $blog_id )->last_updated );
 
 		if ( $idle_time >= $idle_limit ) {
@@ -336,13 +338,13 @@ class Demo_WP_Sandbox {
 	 * @return void
 	 */
 	public function add_menu_bar_reset( $wp_admin_bar ) {
-		if ( Demo_WP()->is_sandbox() ) {
+		if ( Ninja_Demo()->is_sandbox() ) {
 			$url = add_query_arg( array( 'reset_sandbox' => 1 ) );
 			$wp_admin_bar->add_menu( array(
 		        'id'   => 'reset-site',
 		        'meta' => array(),
-		        'title' => __( 'Reset Site Content', 'demo-wp' ),
-		        'href' => wp_nonce_url( $url, 'demo_wp_reset_sandbox', 'demo_wp_sandbox' ) ) );
+		        'title' => __( 'Reset Site Content', 'ninja-demo' ),
+		        'href' => wp_nonce_url( $url, 'ninja_demo_reset_sandbox', 'ninja_demo_sandbox' ) ) );
 		}
 	}
 
@@ -355,7 +357,7 @@ class Demo_WP_Sandbox {
 	 */
 	public function update_state() {
 		global $wpdb;
-		if ( Demo_WP()->is_sandbox() )
+		if ( Ninja_Demo()->is_sandbox() )
 			$wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => get_current_blog_id() ) );
 	}
 
@@ -373,11 +375,11 @@ class Demo_WP_Sandbox {
 			return false;
 		
 		// Bail if we don't have a nonce
-		if ( ! isset ( $_GET['demo_wp_sandbox'] ) )
+		if ( ! isset ( $_GET['ninja_demo_sandbox'] ) )
 			return false;
 
 		// Bail if our nonce isn't correct
-		if ( ! wp_verify_nonce( $_GET['demo_wp_sandbox'], 'demo_wp_reset_sandbox' ) )
+		if ( ! wp_verify_nonce( $_GET['ninja_demo_sandbox'], 'ninja_demo_reset_sandbox' ) )
 			return false;
 
 		$this->reset();
@@ -438,7 +440,7 @@ class Demo_WP_Sandbox {
 
 
 		// RUN THE CLONING
-		Demo_WP()->logs->dlog( 'RUNNING NS Cloner version: ' . DEMO_WP_VERSION . ' <br /><br />' );
+		Ninja_Demo()->logs->dlog( 'RUNNING NS Cloner version: ' . ND_PLUGIN_VERSION . ' <br /><br />' );
 
 		// don't want the trailing slash in path just in case there are replacements that don't have it
 		$source_subd = untrailingslashit( get_blog_details($source_id)->domain . get_blog_details($source_id)->path );
@@ -470,8 +472,8 @@ class Demo_WP_Sandbox {
 			$source_pre = $source_id==1? $wpdb->base_prefix : $wpdb->base_prefix . $source_id . '_';	// the wp id of the source database
 			$target_pre = $wpdb->base_prefix . $target_id . '_';	// the wp id of the target database
 
-			Demo_WP()->logs->dlog ( 'Source Prefix: <b>' . $source_pre . '</b><br />' );
-			Demo_WP()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
+			Ninja_Demo()->logs->dlog ( 'Source Prefix: <b>' . $source_pre . '</b><br />' );
+			Ninja_Demo()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
 
 			// Add support for ThreeWP Broadcast plugin
 			// Thank you John @ propanestudio.com and Aamir
@@ -486,7 +488,7 @@ class Demo_WP_Sandbox {
 						$pushdata = $dd['linked_parent']['blog_id']	; // if its parnet then store its id and make a dataabse request and fetch data of that id
 						$myrow = $wpdb->get_results( 'SELECT * FROM '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata where blog_id='.$pushdata.'', ARRAY_A);
 						$enc=unserialize(base64_decode($myrow[0]['data'])); // unserilize and decode data
-						Demo_WP()->logs->dlog ( 'Adding ThreeWPBroadcast data: <b>' . print_r($enc,true) . '</b><br />' ); //log data
+						Ninja_Demo()->logs->dlog ( 'Adding ThreeWPBroadcast data: <b>' . print_r($enc,true) . '</b><br />' ); //log data
 						$enc['linked_children'][$target_id]=$r['post_id']; // merge newly added site id and post id unserlize data
 						$enc=base64_encode(serialize($enc)); // again serlize this and decode this and save into db
 						$wpdb->query('UPDATE '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET data="'.$enc.'" where blog_id='.$pushdata.'');
@@ -543,9 +545,9 @@ class Demo_WP_Sandbox {
 		}
 
 		//replace
-		Demo_WP()->logs->dlog ( 'running replace on Target table prefix: ' . $target_pre . '<br />' );
+		Ninja_Demo()->logs->dlog ( 'running replace on Target table prefix: ' . $target_pre . '<br />' );
 		foreach( $replace_array as $search_for => $replace_with) {
-			Demo_WP()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
+			Ninja_Demo()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
 		}
 		$this->run_replace($target_pre, $replace_array);
 
@@ -583,9 +585,9 @@ class Demo_WP_Sandbox {
 
 			$num_files = $this->recursive_file_copy($src_blogs_dir, $dst_blogs_dir, 0);
 			$report .= 'Copied: <b>' . $num_files . '</b> folders and files!<br />';
-			Demo_WP()->logs->dlog ('Copied: <b>' . $num_files . '</b> folders and files!<br />');
-			Demo_WP()->logs->dlog ('From: <b>' . $src_blogs_dir . '</b><br />');
-			Demo_WP()->logs->dlog ('To: <b>' . $dst_blogs_dir . '</b><br />');
+			Ninja_Demo()->logs->dlog ('Copied: <b>' . $num_files . '</b> folders and files!<br />');
+			Ninja_Demo()->logs->dlog ('From: <b>' . $src_blogs_dir . '</b><br />');
+			Ninja_Demo()->logs->dlog ('To: <b>' . $dst_blogs_dir . '</b><br />');
 		}
 		else {
 			$report .= '<span class="warning-txt-title">Could not copy files</span><br />';
@@ -598,16 +600,16 @@ class Demo_WP_Sandbox {
 		//Switch to our new blog.
 		switch_to_blog( $this->target_id );
 
-		$_SESSION['demo_wp_sandbox'] = $this->target_id;
+		$_SESSION['ninja_demo_sandbox'] = $this->target_id;
 
 		// This sets the option to discourage search engines from indexing sandboxes within a demo.
 	    update_blog_option( $this->target_id, 'blog_public', 0 );
 		
 		// Auto-login our user if we aren't the super admin
-	    if ( Demo_WP()->settings['auto_login'] !== '' && ! Demo_WP()->is_admin_user() ) {
+	    if ( Ninja_Demo()->settings['auto_login'] !== '' && ! Ninja_Demo()->is_admin_user() ) {
 		    wp_clear_auth_cookie();
-		    wp_set_auth_cookie( Demo_WP()->settings['auto_login'], true );
-		    wp_set_current_user( Demo_WP()->settings['auto_login'] );	    	
+		    wp_set_auth_cookie( Ninja_Demo()->settings['auto_login'], true );
+		    wp_set_current_user( Ninja_Demo()->settings['auto_login'] );	    	
 	    }
 
 	    // Set our "last updated" time to the current time.
@@ -619,19 +621,19 @@ class Demo_WP_Sandbox {
 		deactivate_plugins( $plugins );
 		activate_plugins( $plugins );
 
-		do_action( 'dwp_create_sandbox', $this->target_id );
+		do_action( 'nd_create_sandbox', $this->target_id );
 
 		// Report
 
 		//echo '<p style="margin:auto; text-align:center">';
-		Demo_WP()->logs->dlog ( $report );
+		Ninja_Demo()->logs->dlog ( $report );
 
 		//  End TIMER
 		//  ---------
 		$etimer = explode( ' ', microtime() );
 		$etimer = $etimer[1] + $etimer[0];
-		Demo_WP()->logs->log ( $target_subd . " cloned in " . ($etimer-$stimer) . " seconds."  );
-		Demo_WP()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
+		Ninja_Demo()->logs->log ( $target_subd . " cloned in " . ($etimer-$stimer) . " seconds."  );
+		Ninja_Demo()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//  ---------
 
 		wp_redirect( $site_address );
@@ -646,7 +648,7 @@ class Demo_WP_Sandbox {
 	 * @return string $key
 	 */
 	private function generate_site_name() {
-		$key = Demo_WP()->random_string();
+		$key = Ninja_Demo()->random_string();
 
 	    $site_id = get_id_from_blogname( $key );
 
@@ -685,7 +687,7 @@ class Demo_WP_Sandbox {
 		$create_site_name = $sitename;
 		$create_site_title = $sitetitle;
 
-		$user_id = Demo_WP()->settings['admin_id'];
+		$user_id = Ninja_Demo()->settings['admin_id'];
 
 		$site_id = get_id_from_blogname( $create_site_name );
 
@@ -696,11 +698,11 @@ class Demo_WP_Sandbox {
 		if( ! is_wp_error( $site_id ) ) {
 			//send email
 			//wpmu_welcome_notification( $site_id, $user_id, $create_user_pass, esc_html( $create_site_title ), '' );
-			Demo_WP()->logs->log( 'Site: ' . $tmp_site_domain . $tmp_site_path . ' created!' );
+			Ninja_Demo()->logs->log( 'Site: ' . $tmp_site_domain . $tmp_site_path . ' created!' );
 			//assign target id for cloning and replacing
 			$this->target_id = $site_id;
 		} else {
-			Demo_WP()->logs->log( 'Error creating site: ' . $tmp_site_domain . $tmp_site_path . ' - ' . $site_id->get_error_message() );
+			Ninja_Demo()->logs->log( 'Error creating site: ' . $tmp_site_domain . $tmp_site_path . ' - ' . $site_id->get_error_message() );
 		}
 
 		$users = get_users( 1 );
@@ -760,25 +762,25 @@ class Demo_WP_Sandbox {
 				$num_tables++;
 				//run cloning on current table to target table
 				if ($source_table != $target_table) {
-					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
-					Demo_WP()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
-					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
+					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
+					Ninja_Demo()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
+					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
 					$this->clone_table($source_table, $target_table);
 				}
 				else {
-					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
-					Demo_WP()->logs->dlog ( 'Source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') and Target table: <b>' . $target_table . ' are the same! SKIPPING!!!</b><br />');
-					Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+					Ninja_Demo()->logs->dlog ( 'Source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') and Target table: <b>' . $target_table . ' are the same! SKIPPING!!!</b><br />');
+					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 				}
 			}
 		}
 		else {
-			Demo_WP()->logs->dlog ( 'no data for sql - ' . $SQL );
+			Ninja_Demo()->logs->dlog ( 'no data for sql - ' . $SQL );
 		}
 
-		if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br /><br />'); }
+		if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br /><br />'); }
 		$report .= 'Cloned: <b>' .$num_tables . '</b> tables!<br/ >';
-		Demo_WP()->logs->dlog('Cloned: <b>' .$num_tables . '</b> tables!<br/ >');
+		Ninja_Demo()->logs->dlog('Cloned: <b>' .$num_tables . '</b> tables!<br/ >');
 
 		mysqli_close($cid);
 	}
@@ -843,17 +845,17 @@ class Demo_WP_Sandbox {
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
 
 		if ( isset( $_POST['is_debug'] ) )
-			Demo_WP()->logs->dlog ( $query . '<br /><br />');
+			Ninja_Demo()->logs->dlog ( $query . '<br /><br />');
 
 		$result = mysqli_query( $cid, $query );
 		if ( $result == false )
-			Demo_WP()->logs->dlog ( '<b>ERROR</b> dropping table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> dropping table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
 
 		// Table structure - Get table structure
 		$query = "SHOW CREATE TABLE " . $this->backquote( $source_table );
 		$result = mysqli_query( $cid, $query );
 		if ( $result == false ) {
-			Demo_WP()->logs->dlog ( '<b>ERROR</b> getting table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
 		} else {
 			if ( mysqli_num_rows( $result ) > 0 ) {
 				$sql_create_arr = mysqli_fetch_array( $result );
@@ -865,17 +867,17 @@ class Demo_WP_Sandbox {
 		// Create cloned table structure
 		$query = str_replace( $source_table, $target_table, $sql_statements );
 		if ( isset( $_POST['is_debug'] ) )
-			Demo_WP()->logs->dlog ( $query . '<br /><br />');
+			Ninja_Demo()->logs->dlog ( $query . '<br /><br />');
 
 		$result = mysqli_query( $cid, $query );
 		if ( $result == false )
-			Demo_WP()->logs->dlog ( '<b>ERROR</b> creating table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> creating table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
 
 		// Table data contents - Get table contents
 		$query = "SELECT * FROM " . $this->backquote( $source_table );
 		$result = mysqli_query( $cid, $query );
 		if ( $result == false ) {
-			Demo_WP()->logs->dlog ( '<b>ERROR</b> getting table contents with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table contents with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
 		} else {
 			$fields_cnt = mysqli_num_fields( $result );
 			$rows_cnt   = mysqli_num_rows( $result );
@@ -932,7 +934,7 @@ class Demo_WP_Sandbox {
 
 			// Execute current insert row statement
 			$query = $entries . implode(', ', $values) . ')';
-			if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( $query . '<br />'); }
+			if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $query . '<br />'); }
 			// Have to separate this into its own function otherwise it interfers with current mysql connection / results
 			$this->insert_query($query);
 
@@ -954,7 +956,7 @@ class Demo_WP_Sandbox {
 		mysqli_set_charset( $insert, DB_CHARSET );
 
 		$results = mysqli_query( $insert, $query );
-		if ($results == FALSE) { Demo_WP()->logs->dlog ( '<b>ERROR</b> inserting into table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $insert ) . '<br />'); }
+		if ($results == FALSE) { Ninja_Demo()->logs->dlog ( '<b>ERROR</b> inserting into table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $insert ) . '<br />'); }
 		mysqli_close( $insert );
 	}
 
@@ -971,7 +973,7 @@ class Demo_WP_Sandbox {
 		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
 		mysqli_set_charset( $cid, DB_CHARSET );
 
-		if (!$cid) { Demo_WP()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
+		if (!$cid) { Ninja_Demo()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
 
 		// First, get a list of tables
 		// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard
@@ -981,7 +983,7 @@ class Demo_WP_Sandbox {
 		$tables_list = mysqli_query( $cid, $SQL );
 
 		if (!$tables_list) {
-		Demo_WP()->logs->dlog ("ERROR: " . mysqli_error() . "<br/>$SQL<br/>"); }
+		Ninja_Demo()->logs->dlog ("ERROR: " . mysqli_error() . "<br/>$SQL<br/>"); }
 
 		// Loop through the tables
 
@@ -990,9 +992,9 @@ class Demo_WP_Sandbox {
 			$table = $table_rows[0];
 
 			$count_tables_checked++;
-			Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
-			Demo_WP()->logs->dlog ( 'Searching table: <b>' . $table . '</b><br />');  // we have tables!
-			Demo_WP()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+			Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+			Ninja_Demo()->logs->dlog ( 'Searching table: <b>' . $table . '</b><br />');  // we have tables!
+			Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 
 			// ---------------------------------------------------------------------------------------------------------------
 
@@ -1025,7 +1027,7 @@ class Demo_WP_Sandbox {
 			$data = mysqli_query( $cid, $SQL );
 
 			if (!$data) {
-			Demo_WP()->logs->dlog ("<br /><b>ERROR:</b> " . mysqli_error() . "<br/>$SQL<br/>"); }
+			Ninja_Demo()->logs->dlog ("<br /><b>ERROR:</b> " . mysqli_error() . "<br/>$SQL<br/>"); }
 
 			while ( $row = mysqli_fetch_array( $data ) ) {
 
@@ -1082,9 +1084,9 @@ class Demo_WP_Sandbox {
 					$count_updates_run;
 					$WHERE_SQL = substr($WHERE_SQL,0,-4); // strip off the excess AND - the easiest way to code this without extra flags, etc.
 					$UPDATE_SQL = $UPDATE_SQL.$WHERE_SQL;
-					if (isset($_POST['is_debug'])) { Demo_WP()->logs->dlog ( $UPDATE_SQL.'<br/><br/>'); }
+					if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $UPDATE_SQL.'<br/><br/>'); }
 					$result = mysqli_query( $cid,$UPDATE_SQL );
-					if (!$result) Demo_WP()->logs->dlog (("<br /><b>ERROR: </b>" . mysqli_error() . "<br/>$UPDATE_SQL<br/>"));
+					if (!$result) Ninja_Demo()->logs->dlog (("<br /><b>ERROR: </b>" . mysqli_error() . "<br/>$UPDATE_SQL<br/>"));
 				}
 			}
 			/*---------------------------------------------------------------------------------------------------------*/
@@ -1103,7 +1105,7 @@ class Demo_WP_Sandbox {
 		switch_to_blog( $id );
 		$src_upload_dir = wp_upload_dir();
 		restore_current_blog();
-		Demo_WP()->logs->dlog('Original basedir returned by wp_upload_dir() = <strong>'.$src_upload_dir['basedir'].'</strong><br />');
+		Ninja_Demo()->logs->dlog('Original basedir returned by wp_upload_dir() = <strong>'.$src_upload_dir['basedir'].'</strong><br />');
 		// trim '/files' off the end of loction for sites < 3.5 with old blogs.dir format
 		$folder = str_replace('/files', '', $src_upload_dir['basedir']);
 		$content_dir = '';
@@ -1113,18 +1115,18 @@ class Demo_WP_Sandbox {
 			// get the installation dir - we're using the internal WP constant which the codex says not to do
 			// but at this point the wp_upload_dir() has failed and this is a last resort
 			$content_dir = WP_CONTENT_DIR; //no trailing slash
-			Demo_WP()->logs->dlog('Non-standard result from wp_upload_dir() detected. <br />');
-			Demo_WP()->logs->dlog('Normalized content_dir = '.$content_dir.'<br />');
+			Ninja_Demo()->logs->dlog('Non-standard result from wp_upload_dir() detected. <br />');
+			Ninja_Demo()->logs->dlog('Normalized content_dir = '.$content_dir.'<br />');
 			// check for WP < 3.5 location
 			$test_dir = $content_dir . '/blogs.dir/' . $id;
 			if (file_exists($test_dir)) {
-				Demo_WP()->logs->dlog('Found actual uploads folder at '.$test_dir.'<br />');
+				Ninja_Demo()->logs->dlog('Found actual uploads folder at '.$test_dir.'<br />');
 				return $test_dir;
 			}
 			// check for WP >= 3.5 location
 			$test_dir = $content_dir . '/uploads/sites/' . $id;
 			if (file_exists($test_dir)) {
-				Demo_WP()->logs->dlog('Found actual uploads folder at '.$test_dir.'<br />');
+				Ninja_Demo()->logs->dlog('Found actual uploads folder at '.$test_dir.'<br />');
 				return $test_dir;
 			}
 		}
@@ -1142,15 +1144,20 @@ class Demo_WP_Sandbox {
 	 */
 	public function recursive_file_copy($src, $dst, $num) {
 		$num = $num + 1;
-		if (is_dir($src)) {
-			if (!file_exists($dst)) {
-				mkdir($dst);
-			}
-			$files = scandir($src);
-			foreach ($files as $file)
-				if ($file != "." && $file != ".." && $file != 'sites') $num = $this->recursive_file_copy("$src/$file", "$dst/$file", $num);
+		if ( is_dir( $src ) ) {
+			if ( !file_exists ( $dst ) ) {
+		        global $wp_filesystem;
+		        if ( empty ( $wp_filesystem ) ) {
+		            require_once ( ABSPATH . '/wp-admin/includes/file.php' );
+		            WP_Filesystem();
+		        }
+		        mkdir($dst, FS_CHMOD_DIR, true);
+		    }
+			$files = scandir( $src );
+			foreach ( $files as $file )
+				if ( $file != "." && $file != ".." && $file != 'sites') $num = $this->recursive_file_copy("$src/$file", "$dst/$file", $num);
 		}
-		else if (file_exists($src)) copy($src, $dst);
+		else if ( file_exists ( $src ) ) copy( $src, $dst );
 		return $num;
 	}
 
@@ -1176,5 +1183,4 @@ class Demo_WP_Sandbox {
 			if (is_string($data)) $data = str_replace($find, $replace, $data);
 		}
 	}
-
-} // End Demo_WP_Sandbox class
+} // End Ninja_Demo_Sandbox class

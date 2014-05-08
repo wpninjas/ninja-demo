@@ -1,12 +1,12 @@
 <?php
 /*
-Plugin Name: Demo WP Pro
-Plugin URI: http://demowp.pro
+Plugin Name: Ninja Demo
+Plugin URI: http://ninjademo.com
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
 Version: 0.4
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
-Text Domain: demo-wp
+Text Domain: ninja-demo
 Domain Path: /lang/
 
 This program is free software; you can redistribute it and/or
@@ -31,10 +31,10 @@ These unmodified sections are Copywritten 2012 Never Settle
 if ( ! defined( 'ABSPATH' ) )
 	exit;
 
-class Demo_WP {
+class Ninja_Demo {
 
 	/**
-	 * @var Demo_WP
+	 * @var Ninja_Demo
 	 * @since 1.0
 	 */
 	private static $instance;
@@ -45,40 +45,41 @@ class Demo_WP {
 	var $settings;
 
 	/**
-	 * Main Demo_WP Instance
+	 * Main Ninja_Demo Instance
 	 *
-	 * Insures that only one instance of Demo_WP exists in memory at any one
+	 * Insures that only one instance of Ninja_Demo exists in memory at any one
 	 * time. Also prevents needing to define globals all over the place.
 	 *
 	 * @since 1.0
 	 * @static
 	 * @staticvar array $instance
-	 * @return The highlander Demo_WP
+	 * @return The highlander Ninja_Demo
 	 */
 	public static function instance() {
-		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Demo_WP ) ) {
-			self::$instance = new Demo_WP;
+		if ( ! isset( self::$instance ) && ! ( self::$instance instanceof Ninja_Demo ) ) {
+			self::$instance = new Ninja_Demo;
 			self::$instance->setup_constants();
-			self::$instance->get_settings();
 			self::$instance->includes();
-
-			self::$instance->admin_settings = new Demo_WP_Admin();
-			self::$instance->sandbox = new Demo_WP_Sandbox();
-			self::$instance->restrictions = new Demo_WP_Restrictions();
-			self::$instance->heartbeat = new Demo_WP_Heartbeat();
-			self::$instance->logs = new Demo_WP_Logs();
-			self::$instance->shortcodes = new Demo_WP_Shortcodes();
-			self::$instance->ip = new Demo_WP_IP_Lockout();
-
+			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
+			add_action( 'init', array( self::$instance, 'init' ), 5 );
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
 
 			add_filter( 'widget_text', 'do_shortcode' );
-
-			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 		}
 
 		return self::$instance;
+	}
+
+	public function init() {
+		self::$instance->get_settings();
+		self::$instance->admin_settings = new Ninja_Demo_Admin();
+		self::$instance->sandbox = new Ninja_Demo_Sandbox();
+		self::$instance->restrictions = new Ninja_Demo_Restrictions();
+		self::$instance->heartbeat = new Ninja_Demo_Heartbeat();
+		self::$instance->logs = new Ninja_Demo_Logs();
+		self::$instance->shortcodes = new Ninja_Demo_Shortcodes();
+		self::$instance->ip = new Ninja_Demo_IP_Lockout();
 	}
 
 	/**
@@ -93,7 +94,7 @@ class Demo_WP {
 	 */
 	public function __clone() {
 		// Cloning instances of the class is forbidden
-		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'demo-wp' ), '1.6' );
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'ninja-demo' ), '1.6' );
 	}
 
 	/**
@@ -119,29 +120,29 @@ class Demo_WP {
 		global $wpdb;
 
 		// Plugin version
-		if ( ! defined( 'DEMO_WP_VERSION' ) ) {
-			define( 'DEMO_WP_VERSION', '1.0' );
+		if ( ! defined( 'ND_PLUGIN_VERSION' ) ) {
+			define( 'ND_PLUGIN_VERSION', '1.0' );
 		}
 
 		// Plugin Folder Path
-		if ( ! defined( 'DEMO_WP_DIR' ) ) {
-			define( 'DEMO_WP_DIR', plugin_dir_path( __FILE__ ) );
+		if ( ! defined( 'ND_PLUGIN_DIR' ) ) {
+			define( 'ND_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 		}
 
 		// Plugin Folder URL
-		if ( ! defined( 'DEMO_WP_URL' ) ) {
-			define( 'DEMO_WP_URL', plugin_dir_url( __FILE__ ) );
+		if ( ! defined( 'ND_PLUGIN_URL' ) ) {
+			define( 'ND_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 		}
 
 		// Plugin Root File
-		if ( ! defined( 'DEMO_WP_FILE' ) ) {
-			define( 'DEMO_WP_FILE', __FILE__ );
+		if ( ! defined( 'ND_PLUGIN_FILE' ) ) {
+			define( 'ND_PLUGIN_FILE', __FILE__ );
 		}
 
 		// Lockout IP Table name
-		if ( ! defined( 'DEMO_WP_IP_LOCKOUT_TABLE' ) ) {
+		if ( ! defined( 'ND_IP_LOCKOUT_TABLE' ) ) {
 			switch_to_blog( 1 );
-			define( 'DEMO_WP_IP_LOCKOUT_TABLE', $wpdb->prefix . 'demo_ip_lockout' );
+			define( 'ND_IP_LOCKOUT_TABLE', $wpdb->prefix . 'nd_ip_lockout' );
 			restore_current_blog();
 		}
 	}
@@ -154,8 +155,15 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function get_settings() {
-		$settings = get_blog_option( 1, 'demo_wp' );
-		self::$instance->settings = $settings;
+		$settings = get_blog_option( 1, 'ninja_demo' );
+	    $settings['auto_login'] = isset( $settings['auto_login'] ) ? $settings['auto_login'] : '';
+	    $settings['offline'] = isset( $settings['offline'] ) ? $settings['offline'] : 0;
+	    $settings['prevent_clones'] = isset( $settings['prevent_clones'] ) ? $settings['prevent_clones'] : 0;
+	    $settings['log'] = isset( $settings['log'] ) ? $settings['log'] : 0;
+	    $settings['parent_pages'] = isset( $settings['parent_pages'] ) ? $settings['parent_pages'] : array();
+	    $settings['child_pages'] = isset( $settings['child_pages'] ) ? $settings['child_pages'] : array();
+	    $settings['admin_id'] = isset( $settings['admin_id'] ) ? $settings['admin_id'] : get_current_user_id();
+	    self::$instance->settings = $settings;
 	}
 
 	/**
@@ -166,13 +174,13 @@ class Demo_WP {
 	 * @return void
 	 */
 	private function includes() {
-		require_once( DEMO_WP_DIR . 'classes/admin.php' );
-		require_once( DEMO_WP_DIR . 'classes/sandbox.php' );
-		require_once( DEMO_WP_DIR . 'classes/restrictions.php' );
-		require_once( DEMO_WP_DIR . 'classes/logs.php' );
-		require_once( DEMO_WP_DIR . 'classes/shortcodes.php' );
-		require_once( DEMO_WP_DIR . 'classes/ip-lockout.php' );
-		require_once( DEMO_WP_DIR . 'classes/heartbeat.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/admin.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/sandbox.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/restrictions.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/logs.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
 	}
 
 	/**
@@ -184,7 +192,7 @@ class Demo_WP {
 	 */
 	public function update_settings( $args ) {
 		self::$instance->settings = $args;
-		update_option( 'demo_wp', $args );
+		update_option( 'ninja_demo', $args );
 	}
 
 	/**
@@ -196,7 +204,7 @@ class Demo_WP {
 	 */
 	public function display_js() {
 		if ( ! self::$instance->is_admin_user() && self::$instance->is_sandbox() ) {
-			wp_enqueue_script( 'demo-wp-monitor', DEMO_WP_URL .'assets/js/monitor.js', array( 'jquery', 'heartbeat' ) );
+			wp_enqueue_script( 'ninja-demo-monitor', ND_PLUGIN_URL .'assets/js/monitor.js', array( 'jquery', 'heartbeat' ) );
 		}
 	}
 
@@ -208,7 +216,7 @@ class Demo_WP {
 	 * @return void
 	 */
 	public function display_css() {
-		wp_enqueue_style( 'demo-wp-admin', DEMO_WP_URL .'assets/css/display.css' );
+		wp_enqueue_style( 'ninja-demo-admin', ND_PLUGIN_URL .'assets/css/display.css' );
 	}
 
 	/**
@@ -240,19 +248,20 @@ class Demo_WP {
 	public function activation() {
 		global $wpdb;
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		if ( get_option( 'demo_wp' ) == false ) {
+		if ( get_option( 'ninja_demo' ) == false ) {
 			$args = array(
 				'offline' 			=> 0,
 				'prevent_clones' 	=> 0,
 				'log'				=> 0,
+				'auto_login'		=> '',
 				'parent_pages'		=> array(),
 				'child_pages'		=> array(),
 				'admin_id' 			=> get_current_user_id(),
 			);
-			update_option( 'demo_wp', $args );
+			update_option( 'ninja_demo', $args );
 		}
-		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'dwp_hourly' );
-		$sql = "CREATE TABLE IF NOT EXISTS ". DEMO_WP_IP_LOCKOUT_TABLE . " (
+		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'nd_hourly' );
+		$sql = "CREATE TABLE IF NOT EXISTS ". ND_IP_LOCKOUT_TABLE . " (
 			`id` bigint(20) NOT NULL AUTO_INCREMENT,
 			`ip` text NOT NULL,
 			`time_set` int(255) NOT NULL,
@@ -343,20 +352,20 @@ class Demo_WP {
 } // End Class
 
 /**
- * The main function responsible for returning the one true Demo_WP
+ * The main function responsible for returning the one true Ninja_Demo
  * Instance to functions everywhere.
  *
  * Use this function like you would a global variable, except without needing
  * to declare the global.
  *
- * Example: <?php $dwp = Demo_WP(); ?>
+ * Example: <?php $nd = Ninja_Demo(); ?>
  *
  * @since 1.0
- * @return object The highlander Demo_WP Instance
+ * @return object The highlander Ninja_Demo Instance
  */
-function Demo_WP() {
-	return Demo_WP::instance();
+function Ninja_Demo() {
+	return Ninja_Demo::instance();
 }
 
-// Get Demo_WP Running
-Demo_WP();
+// Get Ninja_Demo Running
+Ninja_Demo();

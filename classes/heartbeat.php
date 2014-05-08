@@ -1,17 +1,17 @@
 <?php
 /**
- * Demo_WP_Heartbeat
+ * Ninja_Demo_Heartbeat
  *
  * This class handles heartbeat responses.
  *
  *
- * @package     Demo WP PRO
+ * @package     Ninja Demo
  * @copyright   Copyright (c) 2014, WP Ninjas
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
  * @since       1.0
  */
 
-class Demo_WP_Heartbeat {
+class Ninja_Demo_Heartbeat {
 
 	/**
 	 * Get everything started
@@ -36,8 +36,8 @@ class Demo_WP_Heartbeat {
 	public function receive( $response, $data ) {
 		global $wpdb;
 
-		if ( isset ( $data['dwp_active'] ) && $data['dwp_active'] == 1 ) {
-			$response['dwp_response'] = $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => get_current_blog_id() ) );
+		if ( isset ( $data['nd_active'] ) && $data['nd_active'] == 1 ) {
+			$response['nd_response'] = $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => get_current_blog_id() ) );
 		}
 
 		return $response;

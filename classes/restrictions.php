@@ -1,11 +1,11 @@
 <?php
 /**
- * Demo_WP_Restrictions
+ * Ninja_Demo_Restrictions
  *
  * This class handles content restriction.
  *
  *
- * @package     Demo WP PRO
+ * @package     Ninja Demo
  * @copyright   Copyright (c) 2014, WP Ninjas
  * @license     http://opensource.org/licenses/gpl-2.0.php GNU Public License
  * @since       1.0
@@ -14,7 +14,7 @@
  * These unmodified sections are Copywritten 2012 Never Settle
  */
 
-class Demo_WP_Restrictions {
+class Ninja_Demo_Restrictions {
 
 	/**
 	 * Get things started
@@ -26,7 +26,7 @@ class Demo_WP_Restrictions {
 	public function __construct() {
 		add_action( 'init', array( $this, 'offline_check' ) );
 		add_action( 'init', array( $this, 'main_site_check' ) );
-		add_action( 'admin_menu', array( $this, 'remove_pages' ), 999 );
+		add_action( 'current_screen', array( $this, 'remove_pages' ), 999 );
 		add_filter( 'show_password_fields', array( $this, 'disable_passwords' ) );
 	    add_filter( 'allow_password_reset', array( $this, 'disable_passwords' ) );
 	    add_action( 'personal_options_update', array( $this, 'disable_email_editing' ), 1 );
@@ -44,8 +44,8 @@ class Demo_WP_Restrictions {
 	 */
 	public function offline_check() {
 		$current_url = add_query_arg( array() );
-		if ( Demo_WP()->settings['offline'] == 1 && ! Demo_WP()->is_admin_user() && ( ( ! Demo_WP()->is_sandbox() && strpos ( $current_url, '/wp-admin/' ) === false && strpos ( $current_url, 'wp-login.php' ) === false ) || Demo_WP()->is_sandbox() ) )
-			wp_die( 'The demo is currently offline.', 'demo-wp' );
+		if ( Ninja_Demo()->settings['offline'] == 1 && ! Ninja_Demo()->is_admin_user() && ( ( ! Ninja_Demo()->is_sandbox() && strpos ( $current_url, '/wp-admin/' ) === false && strpos ( $current_url, 'wp-login.php' ) === false ) || Ninja_Demo()->is_sandbox() ) )
+			wp_die( 'The demo is currently offline.', 'ninja-demo' );
 	}
 
 	/**
@@ -57,21 +57,21 @@ class Demo_WP_Restrictions {
 	 */
 	public function main_site_check() {
 		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
-		if ( isset ( $_SESSION['demo_wp_sandbox'] ) && ! Demo_WP()->is_admin_user() ) {
-			if ( Demo_WP()->sandbox->is_active( $_SESSION['demo_wp_sandbox'] ) ) {
+		if ( isset ( $_SESSION['ninja_demo_sandbox'] ) && ! Ninja_Demo()->is_admin_user() ) {
+			if ( Ninja_Demo()->sandbox->is_active( $_SESSION['ninja_demo_sandbox'] ) ) {
 				if ( is_main_site() ) {
-					wp_redirect( get_blog_details( $_SESSION['demo_wp_sandbox'] )->siteurl );
+					wp_redirect( get_blog_details( $_SESSION['ninja_demo_sandbox'] )->siteurl );
 					die;
 				}
 			} else {
-				unset( $_SESSION['demo_wp_sandbox'] );
+				unset( $_SESSION['ninja_demo_sandbox'] );
 				wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
 				die();
 			}
 		}
 
 		// If this user is on the main blog and logged-in in a sandbox, then log them out.
-		if ( is_user_logged_in() && ! Demo_WP()->is_sandbox() && ! Demo_WP()->is_admin_user() ) {
+		if ( is_user_logged_in() && ! Ninja_Demo()->is_sandbox() && ! Ninja_Demo()->is_admin_user() ) {
 			wp_logout();
 			wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
 			die();
@@ -88,16 +88,16 @@ class Demo_WP_Restrictions {
 	public function remove_pages() {
 		global $menu, $pagenow, $submenu;
 		
-		if ( ! Demo_WP()->is_admin_user() && is_admin() ) {
-			$sub_menu = Demo_WP()->html_entity_decode_deep( $submenu );
-			$allowed_pages = apply_filters( 'dwp_allowed_pages', array( 'options.php', 'index.php' ) );
+		if ( ! Ninja_Demo()->is_admin_user() && is_admin() ) {
+			$sub_menu = Ninja_Demo()->html_entity_decode_deep( $submenu );
+			$allowed_pages = apply_filters( 'nd_allowed_pages', array( 'options.php', 'index.php' ) );
 			$allowed_cpts = array();
 			$allowed_cts = array();
-			Demo_WP()->settings['parent_pages'][] = 'index.php';
+			Ninja_Demo()->settings['parent_pages'][] = 'index.php';
 
-			$allowed_menu_links = apply_filters( 'dwp_show_menu_pages', Demo_WP()->settings['parent_pages'] );
-			$allowed_submenu_links = apply_filters( 'dwp_show_submenu_pages', Demo_WP()->settings['child_pages'] );
-
+			$allowed_menu_links = apply_filters( 'nd_show_menu_pages', Ninja_Demo()->settings['parent_pages'] );
+			$allowed_submenu_links = apply_filters( 'nd_show_submenu_pages', Ninja_Demo()->settings['child_pages'] );
+			
 			foreach ( $menu as $item ) {
 				$parent_slug = $item[2];
 				if ( ! in_array( $parent_slug, $allowed_menu_links ) ) {
@@ -112,7 +112,6 @@ class Demo_WP_Restrictions {
 						$found = false;
 						foreach ( $allowed_submenu_links as $allowed_submenu ) {
 							if ( $allowed_submenu['parent'] == $parent_slug && $allowed_submenu['child'] == $child_slug ) {
-
 								if ( strpos( $allowed_submenu['child'], 'post_type=' ) !== false ) {
 									// Get our post type from our string.
 									$start = strpos( $allowed_submenu['child'], 'post_type=' ) + 10;
@@ -157,6 +156,7 @@ class Demo_WP_Restrictions {
 								$found = true;
 							}
 						}
+
 						if ( $found ) {
 							$allowed_pages[] = $child_slug;							
 						} else {
@@ -165,11 +165,12 @@ class Demo_WP_Restrictions {
 					}
 				}
 			}
+
 			// Filter our allowed list of custom post types.
-			$allowed_cpts = apply_filters( 'dwp_allowed_cpts', $allowed_cpts );			
+			$allowed_cpts = apply_filters( 'nd_allowed_cpts', $allowed_cpts );			
 
 			// Filter our allowed list of custom taxonomies.
-			$allowed_cts = apply_filters( 'dwp_allowed_cpts', $allowed_cts );
+			$allowed_cts = apply_filters( 'nd_allowed_cpts', $allowed_cts );
 
 			// Get our current post type.
 			if ( ! isset ( $_REQUEST['post_type'] ) ) {
@@ -186,35 +187,50 @@ class Demo_WP_Restrictions {
 			if ( isset ( $_REQUEST['taxonomy'] ) ) {
 				$taxonomy = $_REQUEST['taxonomy'];
 			}
- 
+ 			
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 
 				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'post-new.php' ) {
 
 				if ( ! isset ( $allowed_cpts[ $post_type ]['new'] ) || $allowed_cpts[ $post_type ]['new'] != 1 ) {
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'edit-tags.php' ) {
 
 				if ( ! isset ( $allowed_cts[ $post_type ][ $taxonomy ]['edit'] ) || $allowed_cts[ $post_type ][ $taxonomy ]['edit'] != 1 ) {
-					// echo "<pre>";
-					// var_dump ( $allowed_cts );
-					// echo "</pre>";
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
 				}
 
+			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' ) {
+				$screen = get_current_screen();
+				if ( $screen->id == 'dashboard' ) {
+					$found = true;
+				} else {
+					$found = false;					
+				}
+
+				foreach ( $allowed_pages as $page ) {
+					if ( preg_match( "/". $page . "$/", $screen->id ) !== 0 ) {
+						$found = true;
+						break;
+					}
+				}
+
+				if ( ! $found )
+	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
 			} else {
 
 	  			$page_now = basename( add_query_arg( array() ) );
 
 	  			if ( ! in_array( $page_now, $allowed_pages ) && $page_now != 'wp-admin' )
-	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );				
+	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );				
 			}
+			
 		}
 	}
 
@@ -226,7 +242,7 @@ class Demo_WP_Restrictions {
 	 * @return void
 	 */
 	public function disable_passwords() {
-		if ( ! Demo_WP()->is_admin_user() )
+		if ( ! Ninja_Demo()->is_admin_user() )
 			return false;
 		return true;
 	}
@@ -241,7 +257,7 @@ class Demo_WP_Restrictions {
 	public function disable_email_editing( $user_id ) {
 		$user_info = get_userdata( $user_id );
 
-		if ( ! Demo_WP()->is_admin_user() )
+		if ( ! Ninja_Demo()->is_admin_user() )
 			$_POST['first_name'] = $user_info->user_firstname;
 			$_POST['last_name'] = $user_info->user_lastname;
 			$_POST['nickname'] = $user_info->nickname;
@@ -257,7 +273,7 @@ class Demo_WP_Restrictions {
 	 * @return void
 	 */
 	public function remove_menu_bar_items( $wp_admin_bar ) {
-		if ( ! Demo_WP()->is_admin_user() ) {
+		if ( ! Ninja_Demo()->is_admin_user() ) {
 			$wp_admin_bar->remove_node( 'appearance' );
 			$wp_admin_bar->remove_node( 'my-sites' );
 			$wp_admin_bar->remove_node( 'new-content' );
@@ -265,12 +281,14 @@ class Demo_WP_Restrictions {
 		} else {
 			// We do, however, want to add a straight link to the my-sites.php page.
 			$elements = $wp_admin_bar->get_nodes();
-			foreach( $elements as $element ) {
+			if ( is_array ( $elements ) ) {
+				foreach( $elements as $element ) {
 
-		        if ( $element->parent == 'my-sites-list' ) {
-		        	if ( $element->id != 'blog-1' )
-		        		$wp_admin_bar->remove_node( $element->id );
-		        }
+			        if ( $element->parent == 'my-sites-list' ) {
+			        	if ( $element->id != 'blog-1' )
+			        		$wp_admin_bar->remove_node( $element->id );
+			        }
+				}				
 			}
 		}
 	}
@@ -283,7 +301,7 @@ class Demo_WP_Restrictions {
 	 * @return void
 	 */
 	public function prevent_delete_blog( $blog_id, $drop ) {
-		if ( $blog_id == 1 && ! Demo_WP()->is_admin_user() )
-			wp_die( __( 'You do not have sufficient permissions to access this page.', 'demo-wp' ) );
+		if ( $blog_id == 1 && ! Ninja_Demo()->is_admin_user() )
+			wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
 	} 
 }
