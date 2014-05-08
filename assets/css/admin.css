@@ -1,0 +1,23 @@
+#poststuff h2 span {
+    font-size: 12px;
+}
+.nd-admin-restrict {
+    clear: both;
+}
+.nd-admin-restrict:after {
+    clear: both;
+    content: "";
+    display: block;
+}
+.nd-admin-restrict div.nd-parent-div {
+    background: #fff;
+    margin: 0 5px 10px 0;
+    padding: 15px;
+    width: 200px;
+}
+.nd-admin-restrict div.nd-parent-div h4 {
+    margin: 0;
+}
+.nd-admin-restrict div.nd-parent-div ul {
+    margin: 5px 0 0 20px;
+}
