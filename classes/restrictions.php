@@ -170,7 +170,7 @@ class Ninja_Demo_Restrictions {
 			$allowed_cpts = apply_filters( 'nd_allowed_cpts', $allowed_cpts );			
 
 			// Filter our allowed list of custom taxonomies.
-			$allowed_cts = apply_filters( 'nd_allowed_cpts', $allowed_cts );
+			$allowed_cts = apply_filters( 'nd_allowed_cts', $allowed_cts );
 
 			// Get our current post type.
 			if ( ! isset ( $_REQUEST['post_type'] ) ) {

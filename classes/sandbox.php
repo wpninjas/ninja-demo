@@ -614,7 +614,7 @@ class Ninja_Demo_Sandbox {
 	    // Set our "last updated" time to the current time.
 	    $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => $this->target_id ) );
 
-	    if ( apply_filters( 'nd_activate_plugins', true ) ) {
+	    if ( apply_filters( 'nd_activate_plugins', false ) ) {
 		    // Get a list of our active plugins.
 		    $plugins = get_option( 'active_plugins' );
 
