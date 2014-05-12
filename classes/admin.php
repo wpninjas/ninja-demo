@@ -127,7 +127,7 @@ class Ninja_Demo_Admin {
 								</tr>
 								<tr>
 									<th scope="row">
-										<label for="prevent_clones"><?php _e( 'Pevent New Sandboxes', 'ninja-demo' ); ?></label>
+										<label for="prevent_clones"><?php _e( 'Prevent New Sandboxes', 'ninja-demo' ); ?></label>
 									</th>
 									<td>
 										<fieldset>

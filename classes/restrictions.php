@@ -45,7 +45,7 @@ class Ninja_Demo_Restrictions {
 	public function offline_check() {
 		$current_url = add_query_arg( array() );
 		if ( Ninja_Demo()->settings['offline'] == 1 && ! Ninja_Demo()->is_admin_user() && ( ( ! Ninja_Demo()->is_sandbox() && strpos ( $current_url, '/wp-admin/' ) === false && strpos ( $current_url, 'wp-login.php' ) === false ) || Ninja_Demo()->is_sandbox() ) )
-			wp_die( 'The demo is currently offline.', 'ninja-demo' );
+			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
 	}
 
 	/**
@@ -191,19 +191,19 @@ class Ninja_Demo_Restrictions {
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 
 				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'post-new.php' ) {
 
 				if ( ! isset ( $allowed_cpts[ $post_type ]['new'] ) || $allowed_cpts[ $post_type ]['new'] != 1 ) {
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'edit-tags.php' ) {
 
 				if ( ! isset ( $allowed_cts[ $post_type ][ $taxonomy ]['edit'] ) || $allowed_cts[ $post_type ][ $taxonomy ]['edit'] != 1 ) {
-					wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' ) {
@@ -222,13 +222,13 @@ class Ninja_Demo_Restrictions {
 				}
 
 				if ( ! $found )
-	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 			} else {
 
 	  			$page_now = basename( add_query_arg( array() ) );
 
 	  			if ( ! in_array( $page_now, $allowed_pages ) && $page_now != 'wp-admin' )
-	  				wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );				
+	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );		
 			}
 			
 		}
@@ -302,6 +302,6 @@ class Ninja_Demo_Restrictions {
 	 */
 	public function prevent_delete_blog( $blog_id, $drop ) {
 		if ( $blog_id == 1 && ! Ninja_Demo()->is_admin_user() )
-			wp_die( __( 'You do not have sufficient permissions to access this page.', 'ninja-demo' ) );
+			wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 	} 
 }

@@ -68,7 +68,7 @@ class Ninja_Demo_Sandbox {
 	 */
 	public function prevent_clone_check() {
 		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && is_main_site() )
-			wp_die( 'The demo is currently offline.', 'ninja-demo' );
+			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
 	}
 
 	/**
