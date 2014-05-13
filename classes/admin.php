@@ -235,6 +235,32 @@ class Ninja_Demo_Admin {
 										</fieldset>
 									</td>
 								</tr>
+								<tr>
+									<th scope="row">
+										<?php _e( 'License Key', 'ninja-demo' ); ?>
+									</th>
+									<td>
+										<fieldset>
+											<?php
+											if ( Ninja_Demo()->settings['license_status'] == 'valid' ) {
+												$img = 'yes.png';
+												$valid = true;
+											} else {
+												$img = 'no.png';
+												$valid = false;
+											}
+											?>
+											<img src="<?php echo ND_PLUGIN_URL;?>assets/images/<?php echo $img; ?>"><input type="text" name="license" value="<?php echo Ninja_Demo()->settings['license']; ?>" class="regular-text">
+											<?php
+											if ( $valid ) {
+											?>
+												<input type="submit" class="button-secondary" name="deactivate_license" value="<?php _e( 'Deactivate License', 'ninja-demo' ); ?>">
+											<?php
+											}
+										?>
+										</fieldset>
+									</td>
+								</tr>
 							</tbody>
 							</table>
 							<div>
@@ -310,13 +336,87 @@ class Ninja_Demo_Admin {
 					Ninja_Demo()->settings['log'] = $_POST['log'];
 					Ninja_Demo()->settings['auto_login'] = $_POST['auto_login'];
 
+					if ( $_POST['license'] == '' && Ninja_Demo()->settings['license_status'] == 'valid' ) {
+						$this->deactivate_license( Ninja_Demo()->settings['license'] );
+					} else if ( $_POST['license'] != Ninja_Demo()->settings['license'] ) {
+						$this->deactivate_license( Ninja_Demo()->settings['license'] );
+						$this->activate_license( $_POST['license'] );
+					}
+
+					Ninja_Demo()->settings['license'] = $_POST['license'];
+
 					Ninja_Demo()->update_settings( Ninja_Demo()->settings );
 
 				} else if ( isset ( $_POST['delete_all_sandboxes'] ) ) {
 					Ninja_Demo()->sandbox->delete_all();
+				} else if ( isset ( $_POST['deactivate_license'] ) ) {
+					$this->deactivate_license( Ninja_Demo()->settings['license'] );
+					Ninja_Demo()->settings['license'] = '';
+					Ninja_Demo()->update_settings( Ninja_Demo()->settings );
 				}
 				Ninja_Demo()->purge_wpengine_cache();
 			}
+		}
+	}
+
+	/**
+	 * Function that activates our license
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function activate_license( $license ) {
+		// data to send in our API request
+		$api_params = array( 
+			'edd_action'=> 'activate_license', 
+			'license' 	=> $license, 
+			'item_name' => urlencode( 'Ninja Demo' ) // the name of our product in EDD
+		);
+ 
+		// Call the custom API.
+		$response = wp_remote_get( add_query_arg( $api_params, 'http://ninjademo.com' ) );
+ 
+		// make sure the response came back okay
+		if ( is_wp_error( $response ) )
+			return false;
+ 
+		// decode the license data
+		$license_data = json_decode( wp_remote_retrieve_body( $response ) );
+
+		// $license_data->license will be either "valid" or "invalid"
+ 		Ninja_Demo()->settings['license_status'] = $license_data->license;
+	}
+
+	/**
+	 * Function that deactivates our license
+	 * 
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function deactivate_license( $license ) {
+		// data to send in our API request
+		$api_params = array( 
+			'edd_action'=> 'deactivate_license', 
+			'license' 	=> $license, 
+			'item_name' => urlencode( 'Ninja Demo' ) // the name of our product in EDD
+		);
+
+		// Call the custom API.
+		$response = wp_remote_get( add_query_arg( $api_params, 'http://ninjademo.com' ), array( 'timeout' => 15, 'sslverify' => false ) );
+
+ 		// make sure the response came back okay
+		if ( is_wp_error( $response ) )
+			return false;
+
+		// decode the license data
+		$license_data = json_decode( wp_remote_retrieve_body( $response ) );
+
+		// $license_data->license will be either "deactivated" or "failed"
+		if( $license_data->license == 'deactivated' ) {
+			// $license_data->license will be either "valid" or "invalid"
+			Ninja_Demo()->settings['license_status'] = 'invalid';
 		}
 	}
 }
