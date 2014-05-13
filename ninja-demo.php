@@ -197,7 +197,8 @@ class Ninja_Demo {
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
-		require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
+		if ( ! class_exists( 'EDD_SL_Plugin_Updater' ) )
+			require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
 	}
 
 	/**
