@@ -3,7 +3,7 @@
 Plugin Name: Ninja Demo
 Plugin URI: http://ninjademo.com
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 0.4
+Version: 1.0
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: ninja-demo
@@ -43,6 +43,7 @@ class Ninja_Demo {
 	 * @var Class Globals
 	 */
 	var $settings;
+	var $version = '1.0';
 
 	/**
 	 * Main Ninja_Demo Instance
@@ -66,6 +67,7 @@ class Ninja_Demo {
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
 
 			add_filter( 'widget_text', 'do_shortcode' );
+
 		}
 
 		return self::$instance;
@@ -80,6 +82,18 @@ class Ninja_Demo {
 		self::$instance->logs = new Ninja_Demo_Logs();
 		self::$instance->shortcodes = new Ninja_Demo_Shortcodes();
 		self::$instance->ip = new Ninja_Demo_IP_Lockout();
+
+		// Get our license updating stuff going.
+		$license = Ninja_Demo()->settings['license'];
+
+		// setup the updater
+		$edd_updater = new EDD_SL_Plugin_Updater( 'http://ninjademo.com', __FILE__, array(
+		    'version'   => $this->version,     // current version number
+		    'license'   => $license,  // license key (used get_option above to retrieve from DB)
+		    'item_name'     => 'Ninja Demo',  // name of this plugin
+		    'author'  => 'WP Ninjas',  // author of this plugin
+		  )
+		);
 	}
 
 	/**
@@ -106,7 +120,7 @@ class Ninja_Demo {
 	 */
 	public function __wakeup() {
 		// Unserializing instances of the class is forbidden
-		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'edd' ), '1.6' );
+		_doing_it_wrong( __FUNCTION__, __( 'Cheatin&#8217; huh?', 'ninja-demo' ), '1.6' );
 	}
 
 	/**
@@ -163,6 +177,8 @@ class Ninja_Demo {
 	    $settings['parent_pages'] = isset( $settings['parent_pages'] ) ? $settings['parent_pages'] : array();
 	    $settings['child_pages'] = isset( $settings['child_pages'] ) ? $settings['child_pages'] : array();
 	    $settings['admin_id'] = isset( $settings['admin_id'] ) ? $settings['admin_id'] : get_current_user_id();
+	    $settings['license'] = isset( $settings['license'] ) ? $settings['license'] : '';
+	    $settings['license_status'] = isset( $settings['license_status'] ) ? $settings['license_status'] : 'invalid';
 	    self::$instance->settings = $settings;
 	}
 
@@ -181,6 +197,7 @@ class Ninja_Demo {
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
 	}
 
 	/**
@@ -257,6 +274,8 @@ class Ninja_Demo {
 				'parent_pages'		=> array(),
 				'child_pages'		=> array(),
 				'admin_id' 			=> get_current_user_id(),
+				'license'			=> '',
+				'license_status'		=> ''
 			);
 			update_option( 'ninja_demo', $args );
 		}
