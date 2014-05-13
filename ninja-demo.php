@@ -3,7 +3,7 @@
 Plugin Name: Ninja Demo
 Plugin URI: http://ninjademo.com
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 1.0
+Version: 1.0.1
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: ninja-demo
@@ -43,7 +43,7 @@ class Ninja_Demo {
 	 * @var Class Globals
 	 */
 	var $settings;
-	var $version = '1.0';
+	var $version = '1.0.1';
 
 	/**
 	 * Main Ninja_Demo Instance
@@ -197,7 +197,8 @@ class Ninja_Demo {
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
-		require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
+		if ( ! class_exists( 'EDD_SL_Plugin_Updater' ) )
+			require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
 	}
 
 	/**
