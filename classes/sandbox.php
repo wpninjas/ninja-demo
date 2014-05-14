@@ -610,13 +610,14 @@ class Ninja_Demo_Sandbox {
 
 	    // Set our "last updated" time to the current time.
 	    $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => $this->target_id ) );
-
-	    if ( apply_filters( 'nd_activate_plugins', false ) ) {
-		    // Get a list of our active plugins.
-		    $plugins = get_option( 'active_plugins' );
-
-			deactivate_plugins( $plugins );
-			activate_plugins( $plugins );
+	    
+	    // Get a list of our active plugins.
+	    $plugins = get_option( 'active_plugins' );
+	    foreach( $plugins as $plugin ) {
+		    if ( apply_filters( 'nd_activate_plugin', false, $plugin ) ) {
+				deactivate_plugins( $plugin );
+				activate_plugin( $plugin );
+			}
 	    }
 
 		do_action( 'nd_create_sandbox', $this->target_id );
