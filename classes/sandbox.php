@@ -25,6 +25,7 @@ class Ninja_Demo_Sandbox {
 	 */
 	var $db_host = DB_HOST;
 	var $db_name = DB_NAME;
+	var $db_port = '';
 	var $db_user = DB_USER;
 	var $db_pass = DB_PASSWORD;
 
@@ -57,6 +58,12 @@ class Ninja_Demo_Sandbox {
 			'3wp_broadcast_.*', //3wp broadcast tables
 			ND_IP_LOCKOUT_TABLE // Ninja Demo IP lockout table
 		) );
+
+		if ( strpos( $this->db_host, ':' ) ) {
+			$server = explode( ':', $this->db_host );
+			$this->db_host = $server[0];
+			$this->db_port = $server[1];
+		}
 	}
 
 	/**
@@ -516,25 +523,15 @@ class Ninja_Demo_Sandbox {
 			switch_to_blog(1);
 			$main_uploads_info = wp_upload_dir();
 			restore_current_blog();
-			$main_uploads_dir = str_replace( get_site_url('/'), '', $main_uploads_info['baseurl'] );
+			//$main_uploads_dir = str_replace( get_site_url('/'), '', $main_uploads_info['baseurl'] );
+			$main_uploads_dir = $main_uploads_info['baseurl'];
 			$main_uploads_replace = '';
-			// can't do it this way because the condition should NOT just be based on WP version.
-			// it has to be checked against what the ORIGINAL version of wpmu was installed then upgraded
-			// our get_upload_folder() does this
-			//---
-			//$main_uploads_target = $wp_version < 3.5? "$main_uploads_dir/blogs.dir/$target_id" : "$main_uploads_dir/sites/$target_id";
-			//---
-			// detect if this is an older network and set the destination accordingly
-			$test_dir = WP_CONTENT_DIR . '/blogs.dir';
-			if (file_exists($test_dir)) {
-				$main_uploads_target = WP_CONTENT_DIR . '/blogs.dir/' . $target_id;
-				$main_uploads_replace = '/wp-content/blogs.dir/' . $target_id;
-			}
-			else {
-				$main_uploads_target = WP_CONTENT_DIR . '/uploads/sites/' . $target_id;
-				$main_uploads_replace = $main_uploads_info['baseurl'] . '/wp-content/uploads/sites/' . $target_id;
-			}
+
+			$main_uploads_target = WP_CONTENT_DIR . '/uploads/sites/' . $target_id;
+			$main_uploads_replace = $main_uploads_info['baseurl'] . '/sites/' . $target_id;
+
 			$replace_array[$main_uploads_dir] = $main_uploads_replace;
+
 			// debugging ----------------------------
 			$report .= 'Search Source Dir: <b>' . $main_uploads_dir . '</b><br />';
 			$report .= 'Replace Target Dir: <b>' . $main_uploads_replace . '</b><br />';
@@ -637,7 +634,7 @@ class Ninja_Demo_Sandbox {
 		Ninja_Demo()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//  ---------
 
-		wp_redirect( $site_address );
+		wp_redirect( apply_filters( 'nd_create_redirect', $site_address, $this->target_id ) );
 		die;
 	}
 
@@ -725,8 +722,15 @@ class Ninja_Demo_Sandbox {
 	private function run_clone( $source_prefix, $target_prefix ) {
 		global $report, $wpdb;
 
-		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		// Get a list of our current sandbox sites
+		$sandboxes = wp_get_sites();
 
+		if ( $this->db_port != '' ) {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
+		} else {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		}
+		
 		mysqli_set_charset( $cid, DB_CHARSET );
 
 		//get list of source tables when cloning root
@@ -744,12 +748,6 @@ class Ninja_Demo_Sandbox {
 			}
 			$SQL = "SHOW TABLES WHERE `Tables_in_" . $this->db_name . "` IN('" . implode("','",$table_names). "')";
 		}
-		//get list of source tables when cloning non-root
-		else{
-			// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard
-			// single chars in LIKE statement and can really hose up the database
-			$SQL = 'SHOW TABLES LIKE \'' . str_replace('_','\_',$source_prefix) . '%\'';
-		}
 
 		$tables_list = mysqli_query( $cid, $SQL );
 
@@ -758,7 +756,17 @@ class Ninja_Demo_Sandbox {
 		if ($tables_list != false) {
 			while ( $tables = mysqli_fetch_array( $tables_list ) ) {
 				$source_table = $tables[0];
-				$target_table = str_replace( $source_prefix, $target_prefix, $source_table );
+				// Check to see if this table belongs to another clone.
+				foreach ( $sandboxes as $s ) {
+					if ( strpos( $source_table, $source_prefix . $s['blog_id'] ) !== false ) {
+						continue 2;
+					}
+				}
+				
+				$pos = strpos( $source_table, $source_prefix );
+				if ( $pos === 0 ) {
+				    $target_table = substr_replace( $source_table, $target_prefix, $pos, strlen( $source_prefix ) );
+				}
 
 				$num_tables++;
 				//run cloning on current table to target table
@@ -840,7 +848,12 @@ class Ninja_Demo_Sandbox {
 	private function clone_table( $source_table, $target_table ) {
 		$sql_statements = '';
 
-		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		if ( $this->db_port != '' ) {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
+		} else {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		}
+
 		mysqli_set_charset( $cid, DB_CHARSET );
 
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
@@ -953,7 +966,12 @@ class Ninja_Demo_Sandbox {
 	 */
 	private function insert_query($query) {
 
-		$insert = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		if ( $this->db_port != '' ) {
+			$insert = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
+		} else {
+			$insert = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		}
+
 		mysqli_set_charset( $insert, DB_CHARSET );
 
 		$results = mysqli_query( $insert, $query );
@@ -971,7 +989,12 @@ class Ninja_Demo_Sandbox {
 	private function run_replace( $target_prefix, $replace_array ) {
 		global $report, $count_tables_checked, $count_items_checked, $count_items_changed;
 
-		$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		if ( $this->db_port != '' ) {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
+		} else {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		}
+
 		mysqli_set_charset( $cid, DB_CHARSET );
 
 		if (!$cid) { Ninja_Demo()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
@@ -1070,6 +1093,7 @@ class Ninja_Demo_Sandbox {
 							$edited_data = str_replace($search_for,$replace_with,$edited_data) ;
 						}
 					}
+
 					//-- SEARCH ARRAY COMPLETE ----------------------------------------------------------------------
 
 					if ($data_to_fix != $edited_data) {   // If they're not the same, we need to add them to the update string
