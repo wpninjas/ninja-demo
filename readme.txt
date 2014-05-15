@@ -4,7 +4,7 @@ Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
 Tested up to: 3.9.1
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 
 License: GPLv2 or later
 
@@ -16,6 +16,17 @@ Ninja Demo is a plugin designed to make it easy to create WordPress product demo
 To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Changelog ==
+
+= 1.0.3 =
+
+*Bugs:*
+
+* Theme switching should now work whenever the Themes page is whitelisted.
+* Theme options pages should now work if they are hooked onto the themes.php page.
+
+*Changes:*
+
+* Adding an exact page + querystring will now always allow that exact match to be shown. _wpnonce is always ignored.
 
 = 1.0.2 =
 

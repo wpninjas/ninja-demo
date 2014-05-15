@@ -155,6 +155,10 @@ class Ninja_Demo_Restrictions {
 
 								$found = true;
 							}
+
+							if ( $allowed_submenu['parent'] == 'themes.php' && $allowed_submenu['child'] == 'themes.php' ) {
+								$allowed_pages[] = 'themes';
+							}
 						}
 
 						if ( $found ) {
@@ -187,6 +191,15 @@ class Ninja_Demo_Restrictions {
 			if ( isset ( $_REQUEST['taxonomy'] ) ) {
 				$taxonomy = $_REQUEST['taxonomy'];
 			}
+
+			// Check to see if our page url exactly matches something in our allowed pages.
+			$page_now = basename( remove_query_arg( '_wpnonce' ) );
+
+			foreach ( $allowed_pages as $page ) {
+				if ( $page == $page_now ) {
+					return false;
+				}
+			}
  			
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 
@@ -206,7 +219,7 @@ class Ninja_Demo_Restrictions {
 					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
-			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' || $pagenow == 'options-general.php' ) {
+			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' || $pagenow == 'options-general.php' || $pagenow = 'themes.php' ) {
 				$screen = get_current_screen();
 				if ( $screen->id == 'dashboard' ) {
 					$found = true;
@@ -224,8 +237,6 @@ class Ninja_Demo_Restrictions {
 				if ( ! $found )
 	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 			} else {
-
-	  			$page_now = basename( add_query_arg( array() ) );
 
 	  			if ( ! in_array( $page_now, $allowed_pages ) && $page_now != 'wp-admin' )
 	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );		
