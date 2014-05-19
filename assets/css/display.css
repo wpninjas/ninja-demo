@@ -22,3 +22,68 @@
     font-size: 22px;
     width: 100%;
 }
+
+.nd-toolbar,
+.nd-toolbar * {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing:    border-box;
+    box-sizing:         border-box;
+}
+
+.admin-bar .nd-toolbar {
+    top: 32px;
+}
+.nd-toolbar {
+    background: #333;
+    padding: 8px 20px;
+    position: fixed;
+    top: opx;
+    left: 0;
+    right: 0;
+    height: 46px;
+}
+.nd-toolbar form {
+    width: 200px;
+    float: right;
+}
+.nd-toolbar select {
+    width: 100%;
+    height: 28px;
+}
+.nd-toolbar-view {
+    display: inline;
+    float: right;
+}
+.nd-toolbar-view a {
+    background: #f1f1f1;
+    color: #333;
+    border-radius: 4px;
+    line-height: 30px;
+    margin-right: 5px;
+    padding: 5px 15px;
+    padding-left: 32px;
+    position: relative;
+}
+.nd-toolbar-view a:before {
+    font-family: 'dashicons';
+    font-size: 22px;
+    position: absolute;
+    left: 5px;
+}
+.nd-toolbar-view a.nd-view-mobile:before {
+    content: "\f470";
+}
+.nd-toolbar-view a.nd-view-tablet:before {
+    content: "\f471";
+}
+.nd-toolbar-view a.nd-view-desktop:before {
+    content: "\f472";
+}
+
+html { margin-top: 78px !important; }
+* html body { margin-top: 78px !important; }
+@media screen and ( max-width: 782px ) {
+    html { margin-top: 106px !important; }
+    * html body { margin-top: 106px !important; }
+    .admin-bar .nd-toolbar { top: 46px; }
+}

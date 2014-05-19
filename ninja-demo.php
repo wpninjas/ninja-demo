@@ -63,7 +63,7 @@ class Ninja_Demo {
 			self::$instance->includes();
 			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 			add_action( 'init', array( self::$instance, 'init' ), 5 );
-			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
+			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
 
 			add_filter( 'widget_text', 'do_shortcode' );
@@ -197,6 +197,7 @@ class Ninja_Demo {
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/toolbar.php' );
 		if ( ! class_exists( 'EDD_SL_Plugin_Updater' ) )
 			require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
 	}
@@ -288,7 +289,7 @@ class Ninja_Demo {
 			`time_expires` int(255) NOT NULL,
 		  PRIMARY KEY (`id`)
 		) ENGINE=InnoDB  DEFAULT CHARSET=utf8;";
-		
+
 		dbDelta($sql);
 	}
 
@@ -357,7 +358,7 @@ class Ninja_Demo {
 
 	/**
 	 * Decode HTML entities within an array
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return array $value
@@ -367,7 +368,7 @@ class Ninja_Demo {
 	        array_map( array( self::$instance, 'html_entity_decode_deep' ), $value ) :
 	        html_entity_decode( $value );
     	return $value;
-	}	
+	}
 
 } // End Class
 
