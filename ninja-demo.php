@@ -3,7 +3,7 @@
 Plugin Name: Ninja Demo
 Plugin URI: http://ninjademo.com
 Description: Turn your WordPress installation into a demo site for your theme or plugin.
-Version: 1.0.3
+Version: 1.0.4
 Author: The WP Ninjas
 Author URI: http://wpninjas.com
 Text Domain: ninja-demo
@@ -43,7 +43,8 @@ class Ninja_Demo {
 	 * @var Class Globals
 	 */
 	var $settings;
-	var $version = '1.0.3';
+	var $version = '1.0.4';
+	var $cached_source_id = '';
 
 	/**
 	 * Main Ninja_Demo Instance
@@ -61,13 +62,17 @@ class Ninja_Demo {
 			self::$instance = new Ninja_Demo;
 			self::$instance->setup_constants();
 			self::$instance->includes();
+			//self::$instance->theme = new Ninja_Demo_Theme();
+			//self::$instance->toolbar = new Ninja_Demo_Toolbar();
+
 			register_activation_hook( __FILE__, array( self::$instance, 'activation' ) );
 			add_action( 'init', array( self::$instance, 'init' ), 5 );
-			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ) );
+			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_css' ), 999 );
 			add_action( 'wp_enqueue_scripts', array( self::$instance, 'display_js' ) );
-
+					
 			add_filter( 'widget_text', 'do_shortcode' );
 
+			add_action( 'plugins_loaded', array( self::$instance, 'load_lang' ) );
 		}
 
 		return self::$instance;
@@ -84,7 +89,7 @@ class Ninja_Demo {
 		self::$instance->ip = new Ninja_Demo_IP_Lockout();
 
 		// Get our license updating stuff going.
-		$license = Ninja_Demo()->settings['license'];
+		$license = Ninja_Demo()->plugin_settings['license'];
 
 		// setup the updater
 		$edd_updater = new EDD_SL_Plugin_Updater( 'http://ninjademo.com', __FILE__, array(
@@ -94,6 +99,38 @@ class Ninja_Demo {
 		    'author'  => 'WP Ninjas',  // author of this plugin
 		  )
 		);
+	}
+
+	/**
+	 * Add our language files.
+	 * Load the text domain
+	 * 
+	 * @since 1.0.4
+	 * @access public
+	 * @return void/
+	 */
+	public function load_lang() {
+
+		/** Set our unique textdomain string */
+		$textdomain = 'ninja-demo';
+
+		/** The 'plugin_locale' filter is also used by default in load_plugin_textdomain() */
+		$locale = apply_filters( 'plugin_locale', get_locale(), $textdomain );
+
+		/** Set filter for WordPress languages directory */
+		$wp_lang_dir = apply_filters(
+			'ninja_demo_wp_lang_dir',
+			WP_LANG_DIR . '/ninja-demo/' . $textdomain . '-' . $locale . '.mo'
+		);
+
+		/** Translations: First, look in WordPress' "languages" folder = custom & update-secure! */
+		load_textdomain( $textdomain, $wp_lang_dir );
+
+		/** Translations: Secondly, look in plugin's "lang" folder = default */
+		$plugin_dir = basename( dirname( __FILE__ ) );
+		$lang_dir = apply_filters( 'ninja_demo_lang_dir', $plugin_dir . '/lang/' );
+		load_plugin_textdomain( $textdomain, FALSE, $lang_dir );
+
 	}
 
 	/**
@@ -169,17 +206,59 @@ class Ninja_Demo {
 	 * @return void
 	 */
 	private function get_settings() {
-		$settings = get_blog_option( 1, 'ninja_demo' );
-	    $settings['auto_login'] = isset( $settings['auto_login'] ) ? $settings['auto_login'] : '';
-	    $settings['offline'] = isset( $settings['offline'] ) ? $settings['offline'] : 0;
-	    $settings['prevent_clones'] = isset( $settings['prevent_clones'] ) ? $settings['prevent_clones'] : 0;
-	    $settings['log'] = isset( $settings['log'] ) ? $settings['log'] : 0;
-	    $settings['parent_pages'] = isset( $settings['parent_pages'] ) ? $settings['parent_pages'] : array();
-	    $settings['child_pages'] = isset( $settings['child_pages'] ) ? $settings['child_pages'] : array();
-	    $settings['admin_id'] = isset( $settings['admin_id'] ) ? $settings['admin_id'] : get_current_user_id();
-	    $settings['license'] = isset( $settings['license'] ) ? $settings['license'] : '';
-	    $settings['license_status'] = isset( $settings['license_status'] ) ? $settings['license_status'] : 'invalid';
+		// Get our sandbox's source id
+		if ( self::$instance->source_id() ) {
+			$settings = get_blog_option( self::$instance->source_id(), 'ninja_demo' );
+		} else {
+			$settings = get_option( 'ninja_demo' );
+		}
+
+		$plugin_settings = get_site_option( 'ninja_demo' );
+
+		$settings['parent_pages'] = isset ( $settings['parent_pages'] ) ? $settings['parent_pages'] : array();
+		$settings['child_pages'] = isset ( $settings['child_pages'] ) ? $settings['child_pages'] : array();
+		$settings['log'] = isset ( $settings['log'] ) ? $settings['log'] : 0;
+		$settings['prevent_clones'] = isset ( $settings['prevent_clones'] ) ? $settings['prevent_clones'] : '';
+		$settings['offline'] = isset ( $settings['offline'] ) ? $settings['offline'] : '';
+		$settings['show_toolbar'] = isset ( $settings['show_toolbar'] ) ? $settings['show_toolbar'] : 1;
+		$settings['auto_login'] = isset ( $settings['auto_login'] ) ? $settings['auto_login'] : '';
+		$settings['login_role'] = isset ( $settings['login_role'] ) ? $settings['login_role'] : '';
+		$settings['theme_site'] = isset ( $settings['theme_site'] ) ? $settings['theme_site'] : '';
+		
+		// Check to see if we've upgraded from a version before plugin_settings was introduced.
+		if ( isset ( $settings['admin_id'] ) ) {
+			$plugin_settings['admin_id'] = $settings['admin_id'];
+			unset( $settings['admin_id'] );
+			self::$instance->update_settings( $settings );
+			self::$instance->update_plugin_settings( $plugin_settings );
+		}
+
+		if ( isset ( $settings['license'] ) ) {
+			$plugin_settings['license'] = $settings['license'];
+			unset( $settings['license'] );
+			self::$instance->update_settings( $settings );
+			self::$instance->update_plugin_settings( $plugin_settings );
+		}
+
+		if ( isset ( $settings['license_status'] ) ) {
+			$plugin_settings['license_status'] = $settings['license_status'];
+			unset( $settings['license_status'] );
+			self::$instance->update_settings( $settings );
+			self::$instance->update_plugin_settings( $plugin_settings );
+		}
+
 	    self::$instance->settings = $settings;
+
+	    // Get our plugin settings
+	    
+	    if ( isset ( $settings['license'] ) ) {
+
+	    }
+	    $plugin_settings['license'] = isset ( $plugin_settings['license'] ) ? $plugin_settings['license'] : '';
+		$plugin_settings['license_status'] = isset ( $plugin_settings['license_status'] ) ? $plugin_settings['license_status'] : '';
+		$plugin_settings['theme_sites'] = isset ( $plugin_settings['theme_sites'] ) ? $plugin_settings['theme_sites'] : array();
+
+	    self::$instance->plugin_settings = $plugin_settings;
 	}
 
 	/**
@@ -197,6 +276,9 @@ class Ninja_Demo {
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/ip-lockout.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/heartbeat.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/toolbar.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/theme.php' );
+
 		if ( ! class_exists( 'EDD_SL_Plugin_Updater' ) )
 			require_once( ND_PLUGIN_DIR . 'classes/EDD_SL_Plugin_Updater.php' );
 	}
@@ -211,6 +293,18 @@ class Ninja_Demo {
 	public function update_settings( $args ) {
 		self::$instance->settings = $args;
 		update_option( 'ninja_demo', $args );
+	}	
+
+	/**
+	 * Update our plugin settings
+	 *
+	 * @access public
+	 * @since 1.0
+	 * @return void
+	 */
+	public function update_plugin_settings( $args ) {
+		self::$instance->plugin_settings = $args;
+		update_site_option( 'ninja_demo', $args );
 	}
 
 	/**
@@ -223,6 +317,11 @@ class Ninja_Demo {
 	public function display_js() {
 		if ( ! self::$instance->is_admin_user() && self::$instance->is_sandbox() ) {
 			wp_enqueue_script( 'ninja-demo-monitor', ND_PLUGIN_URL .'assets/js/monitor.js', array( 'jquery', 'heartbeat' ) );
+		}
+
+		if ( self::$instance->settings['show_toolbar'] == 1 ) {
+			wp_enqueue_script( 'ninja_demo-modal', ND_PLUGIN_URL .'assets/js/jquery.modal.min.js', array( 'jquery', 'jquery-ui-core', 'jquery-effects-core', 'jquery-effects-fade' ) );
+			wp_enqueue_script( 'ninja_demo-modal', ND_PLUGIN_URL .'assets/js/modernizr.custom.79639.js', array( 'jquery', 'jquery-ui-core', 'jquery-effects-core', 'jquery-effects-fade' ) );
 		}
 	}
 
@@ -266,6 +365,17 @@ class Ninja_Demo {
 	public function activation() {
 		global $wpdb;
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		
+		if ( get_site_option( 'ninja_demo' ) == false ) {
+			$args = array(
+				'admin_id' 			=> get_current_user_id(),
+				'license'			=> '',
+				'license_status'	=> '',
+				'theme_sites'		=> array()
+			);
+			update_site_option( 'ninja_demo', $args );
+		}
+
 		if ( get_option( 'ninja_demo' ) == false ) {
 			$args = array(
 				'offline' 			=> 1,
@@ -274,12 +384,12 @@ class Ninja_Demo {
 				'auto_login'		=> '',
 				'parent_pages'		=> array(),
 				'child_pages'		=> array(),
-				'admin_id' 			=> get_current_user_id(),
-				'license'			=> '',
-				'license_status'		=> ''
+				'show_toolbar'		=> 0
 			);
 			update_option( 'ninja_demo', $args );
 		}
+
+
 		wp_schedule_event( current_time( 'timestamp' ), 'hourly', 'nd_hourly' );
 		$sql = "CREATE TABLE IF NOT EXISTS ". ND_IP_LOCKOUT_TABLE . " (
 			`id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -288,7 +398,7 @@ class Ninja_Demo {
 			`time_expires` int(255) NOT NULL,
 		  PRIMARY KEY (`id`)
 		) ENGINE=InnoDB  DEFAULT CHARSET=utf8;";
-		
+
 		dbDelta($sql);
 	}
 
@@ -341,23 +451,47 @@ class Ninja_Demo {
 
 	/**
 	 * Check to see if we are currently in a sandbox.
-	 * Wrapper function for is_main_site()
 	 *
 	 * @access public
 	 * @since 1.0
 	 * @return bool
 	 */
-	public function is_sandbox() {
-		if ( is_main_site() ) {
-			return false;
+	public function is_sandbox( $blog_id = '' ) {
+		if ( $blog_id != '' ) {
+			if ( get_blog_option( $blog_id, 'nd_sandbox' ) == 1 ) {
+				return true;
+			} else {
+				return false;
+			}
 		} else {
-			return true;
+			// Check to see if our sandbox option is set.
+			if ( get_option( 'nd_sandbox' ) == 1 ) {
+				return true;
+			} else {
+				return false;
+			}			
+		}
+
+	}
+
+	/**
+	 * Return our source id if we are in a sandbox. Return false otherwise.
+	 * 
+	 * @access public
+	 * @since 1.0.4
+	 * @return $id or bool(false)
+	 */
+	public function source_id() {
+		if ( self::$instance->is_sandbox() ) {
+			return get_option( 'nd_source_id' );
+		} else {
+			return false;
 		}
 	}
 
 	/**
 	 * Decode HTML entities within an array
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return array $value
@@ -367,7 +501,7 @@ class Ninja_Demo {
 	        array_map( array( self::$instance, 'html_entity_decode_deep' ), $value ) :
 	        html_entity_decode( $value );
     	return $value;
-	}	
+	}
 
 } // End Class
 
