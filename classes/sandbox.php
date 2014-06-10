@@ -74,7 +74,7 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	public function prevent_clone_check() {
-		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && is_main_site() )
+		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && ! NInja_Demo()->is_sandbox() )
 			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
 	}
 
@@ -85,7 +85,7 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return int $count
 	 */
-	public function count() {
+	public function count( $source_id = '' ) {
 		global $wpdb;
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
@@ -96,8 +96,37 @@ class Ninja_Demo_Sandbox {
 	        AND archived = '0'
 	        AND blog_id != 1"
 	    );
-	    $count = count( $blogs );
+	    $count = 0;
+	    foreach ( $blogs as $blog ) {
+	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) == 1 ) {
+	    		if ( $source_id == '' ) {
+	    			$count++;
+	    		} else if ( $source_id == get_blog_option( $blog->blog_id, 'nd_source_id' ) ) {
+	    			$count++;
+	    		}
+	    		
+	    	}
+	    }
 		return $count;
+	}
+
+	/**
+	 * Function to get our sandbox key (the random string associated with the sandbox)
+	 * 
+	 * @access public
+	 * @since 1.0.4
+	 * @return string $id
+	 */
+	public function get_key( $blog_id = '' ) {
+		if ( $blog_id == '' ) {
+			if ( Ninja_Demo()->is_sandbox() ) {
+				return get_option( 'nd_sandbox_id' );
+			} else {
+				return false;
+			}
+		} else {
+			return get_blog_option( $blog_id, 'nd_sandbox_id' );
+		}
 	}
 
 	/**
@@ -107,7 +136,7 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function delete_all() {
+	public function delete_all( $source_id = '' ) {
 		global $wpdb;
 		// Get a list of all of our sandboxes
 		$blogs = $wpdb->get_results("
@@ -120,7 +149,15 @@ class Ninja_Demo_Sandbox {
 	        AND blog_id != 1"
 	    );
 	    foreach ( $blogs as $blog ) {
-	    	$this->delete( $blog->blog_id );
+	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) == 1 ) {
+	    		if ( $source_id != '' ) {
+	    			if ( get_blog_option( $blog->blog_id, 'nd_source_id' ) == $source_id ) {
+						$this->delete( $blog->blog_id );
+					}
+	    		} else {
+	    			$this->delete( $blog->blog_id );
+	    		}
+	    	}
 		}
 	}
 
@@ -136,6 +173,7 @@ class Ninja_Demo_Sandbox {
 
 		// Make sure that our blog_id is an integer.
 		$blog_id = intval( $blog_id );
+		$source_id = get_option( 'nd_source_id' );
 
 		$switch = false;
 		if ( get_current_blog_id() != $blog_id ) {
@@ -246,8 +284,8 @@ class Ninja_Demo_Sandbox {
 		}
 
 		// Delete our stored $_SESSION variable
-		if ( isset( $_SESSION['ninja_demo_sandbox'] ) ) {
-			unset( $_SESSION['ninja_demo_sandbox'] );
+		if ( isset( $_SESSION[ 'nd_sandbox_' . $source_id ] ) ) {
+			unset( $_SESSION[ 'nd_sandbox_' . $source_id ] );
     	}
 
 		// Logout our current user
@@ -281,14 +319,17 @@ class Ninja_Demo_Sandbox {
 	    $sites = array();
 	    $redirect = false;
 	    foreach ( $blogs as $blog ) {
-
-	   		// If we've been alive longer than the lifespan, delete the sandbox.
-	   		if ( apply_filters( 'nd_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
-	   			// Check to see if we're currently looking at the blog to be deleted.
-				if ( $blog->blog_id == get_current_blog_id() )
-					$redirect = true;
-				$this->delete( $blog->blog_id );
-	   		}
+	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) == 1 ) {
+		   		// If we've been alive longer than the lifespan, delete the sandbox.
+		   		if ( apply_filters( 'nd_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
+		   			// Check to see if we're currently looking at the blog to be deleted.
+					if ( $blog->blog_id == get_current_blog_id() ) {
+						$redirect = true;
+						$source_id = get_blog_option( $blog->blog_id, 'nd_source_id' );
+					}
+					$this->delete( $blog->blog_id );
+		   		}	    		
+	    	}
 		}
 
 		if ( $redirect ) {
@@ -400,12 +441,14 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	public function reset() {
+		// Get our source id
+		$source_id = get_option( 'nd_source_id' );
 		// Delete our current sandbox
 		$this->delete( get_current_blog_id() );
-		// Switch to our main blog
-		switch_to_blog( 1 );
+		// Switch to our source blog
+		switch_to_blog( $source_id );
 		// Create a new sandbox
-		$this->create();
+		$this->create( $source_id );
 	}
 
 	/**
@@ -415,7 +458,7 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function create() {
+	public function create( $source_id, $target_site_name = '' ) {
 		global $wpdb, $report, $count_tables_checked, $count_items_checked, $count_items_changed, $current_site, $wp_version;
 
 		// Declare the locals that need to be available throughout the function:
@@ -430,14 +473,15 @@ class Ninja_Demo_Sandbox {
 		$stimer = $stimer[1] + $stimer[0];
 		//  -----------
 
-		$source_id = 1;
 		$target_site = get_blog_details( $source_id )->blogname;
-		$target_site_name = $this->generate_site_name();
+		if ( $target_site_name == '' ) {
+			$target_site_name = $this->generate_site_name();			
+		}
 
 		// CREATE THE SITE
 
 		// Create site
-		$this->create_site( $target_site_name, $target_site );
+		$this->create_site( $target_site_name, $target_site, $source_id );
 
 		// Start compiling data for success message
 		$site_address = get_blog_details( $this->target_id )->siteurl;
@@ -538,7 +582,13 @@ class Ninja_Demo_Sandbox {
 			// --------------------------------------
 			//reset the option_name = wp_#_user_roles row in the wp_#_options table back to the id of the target site
 			$replace_array[$wpdb->base_prefix . 'user_roles'] = $wpdb->base_prefix . $target_id . '_user_roles';
-		}
+		} else {
+			// REPLACEMENTS FOR NON-ROOT SITE CLONING
+			// uploads location
+			$replace_array['/sites/' . $source_id . '/'] = '/sites/' . $target_id . '/';
+			//reset the option_name = wp_#_user_roles row in the wp_#_options table back to the id of the target site
+			$replace_array[$wpdb->base_prefix . $source_id . '_user_roles'] = $wpdb->base_prefix . $target_id . '_user_roles';
+		}		
 
 		//replace
 		Ninja_Demo()->logs->dlog ( 'running replace on Target table prefix: ' . $target_pre . '<br />' );
@@ -596,16 +646,29 @@ class Ninja_Demo_Sandbox {
 		//Switch to our new blog.
 		switch_to_blog( $this->target_id );
 
-		$_SESSION['ninja_demo_sandbox'] = $this->target_id;
+		$_SESSION[ 'nd_sandbox_' . $source_id ] = $this->target_id;
 
 		// This sets the option to discourage search engines from indexing sandboxes within a demo.
 	    update_blog_option( $this->target_id, 'blog_public', 0 );
+
+	    // Set an option with our random site key
+	    update_blog_option( $this->target_id, 'nd_sandbox_id', $target_site_name );
+
+	    // Set an option marking this as a sandbox
+	    update_blog_option( $this->target_id, 'nd_sandbox', 1 );
+
+	    // Set an option that marks this sandbox's source id
+	    update_blog_option( $this->target_id, 'nd_source_id', $source_id );
 		
 		// Auto-login our user if we aren't the super admin
-	    if ( Ninja_Demo()->settings['auto_login'] !== '' && ! Ninja_Demo()->is_admin_user() ) {
+
+		// Our login settings might not be based upon this blog.
+		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
+
+	    if ( isset ( $nd_settings['auto_login'] ) && $nd_settings['auto_login'] !== '' && ! Ninja_Demo()->is_admin_user() ) {
 		    wp_clear_auth_cookie();
-		    wp_set_auth_cookie( Ninja_Demo()->settings['auto_login'], true );
-		    wp_set_current_user( Ninja_Demo()->settings['auto_login'] );	    	
+		    wp_set_auth_cookie( $nd_settings['auto_login'], true );
+		    wp_set_current_user( $nd_settings['auto_login'] );	    	
 	    }
 
 	    // Set our "last updated" time to the current time.
@@ -665,7 +728,7 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function create_site( $sitename, $sitetitle ) {
+	private function create_site( $sitename, $sitetitle, $source_id ) {
 		global $wpdb, $current_site, $current_user;
 		get_currentuserinfo();
 
@@ -686,7 +749,7 @@ class Ninja_Demo_Sandbox {
 		$create_site_name = $sitename;
 		$create_site_title = $sitetitle;
 
-		$user_id = Ninja_Demo()->settings['admin_id'];
+		$user_id = Ninja_Demo()->plugin_settings['admin_id'];
 
 		$site_id = get_id_from_blogname( $create_site_name );
 
@@ -695,8 +758,6 @@ class Ninja_Demo_Sandbox {
 		$site_id = wpmu_create_blog( $tmp_site_domain, $tmp_site_path, $create_site_title, $user_id , $meta, $current_site->id );
 
 		if( ! is_wp_error( $site_id ) ) {
-			//send email
-			//wpmu_welcome_notification( $site_id, $user_id, $create_user_pass, esc_html( $create_site_title ), '' );
 			Ninja_Demo()->logs->log( 'Site: ' . $tmp_site_domain . $tmp_site_path . ' created!' );
 			//assign target id for cloning and replacing
 			$this->target_id = $site_id;
@@ -704,11 +765,14 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->log( 'Error creating site: ' . $tmp_site_domain . $tmp_site_path . ' - ' . $site_id->get_error_message() );
 		}
 
-		$users = get_users( 1 );
-		if ( is_array( $users ) ) {
-			foreach ( $users as $user ) {
-				add_user_to_blog( $this->target_id, $user->ID, $user->roles[0] );
-			}
+		// Our login settings might not be based upon this blog.
+		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
+		if ( isset ( $nd_settings['auto_login'] )  && isset ( $nd_settings ) ) {
+			if ( $nd_settings['auto_login'] != '' && $nd_settings['login_role'] != '' ) {
+				$user = $nd_settings['auto_login'];
+				$role = $nd_settings['login_role'];
+				add_user_to_blog( $this->target_id, $user, $role );
+			}			
 		}
 	}
 
@@ -747,7 +811,11 @@ class Ninja_Demo_Sandbox {
 					array_push($table_names, $table_name);
 				}
 			}
-			$SQL = "SHOW TABLES WHERE `Tables_in_" . $this->db_name . "` IN('" . implode("','",$table_names). "')";
+			$SQL = "SHOW TABLES WHERE `Tables_in_" . $this->db_name . "` IN('" . implode( "','", $table_names ). "')";
+		} else { //get list of source tables when cloning non-root
+			// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard 
+			// single chars in LIKE statement and can really hose up the database
+			$SQL = 'SHOW TABLES LIKE \'' . str_replace( '_', '\_', $source_prefix ) . '%\'';
 		}
 
 		$tables_list = mysqli_query( $cid, $SQL );

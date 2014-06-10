@@ -39,7 +39,13 @@ class Ninja_Demo_Shortcodes {
 	 * @since 1.0
 	 * @return string $output
 	 */
-	public function try_button() {
+	public function try_button( $atts ) {
+		if ( isset ( $atts['source_id'] ) ) {
+			$source_id = $atts['source_id'];
+		} else {
+			$source_id = get_current_blog_id();
+		}
+		
 		$spam_q = $this->get_spam_question();
 		$spam_a = $this->get_spam_answer( $spam_q );
 		$tid = $this->set_transient( $spam_a );
@@ -52,7 +58,7 @@ class Ninja_Demo_Shortcodes {
 		}
 
 		ob_start();
-		if ( is_main_site() ) {
+		if ( ! Ninja_Demo()->is_sandbox() ) {
 		?>
 		<a id="ninja-demo"></a>
 		<div class="nd-start-demo">
@@ -64,6 +70,7 @@ class Ninja_Demo_Shortcodes {
 					<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
 					<input name="nd_create_sandbox" type="hidden" value="1">
 					<input name="tid" type="hidden" value="<?php echo $tid; ?>">
+					<input name="source_id" type="hidden" value="<?php echo $source_id; ?>"
 					<div>
 						<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
 						<?php
@@ -126,7 +133,7 @@ class Ninja_Demo_Shortcodes {
 			?>
 		</div>
 		<?php
-		} // End is_main_site check
+		} // End is_sandbox check
 		$output = ob_get_clean();
 		return $output;
 	}
@@ -191,7 +198,7 @@ class Ninja_Demo_Shortcodes {
 		// Remove our transient answer
 		delete_transient( $_POST['tid'] );
 
-		Ninja_Demo()->sandbox->create();
+		Ninja_Demo()->sandbox->create( $_POST['source_id'] );
 	}
 
 	/**
@@ -282,7 +289,7 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function is_sandbox( $atts, $content = null ) {
 		if ( Ninja_Demo()->is_sandbox() ) {
-			return $content;
+			return do_shortcode( $content );
 		} else {
 			return false;
 		}
@@ -297,7 +304,7 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function is_not_sandbox( $atts, $content = null ) {
 		if ( ! Ninja_Demo()->is_sandbox() ) {
-			return $content;
+			return do_shortcode( $content );
 		} else {
 			return false;
 		}
@@ -312,7 +319,7 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function is_sandbox_expired( $atts, $content = null ) {
 		if ( isset ( $_REQUEST['sandbox_expired'] ) && $_REQUEST['sandbox_expired'] == 1 ) {
-			return $content;
+			return do_shortcode( $content );
 		} else {
 			return false;
 		}

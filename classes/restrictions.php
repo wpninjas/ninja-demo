@@ -56,24 +56,23 @@ class Ninja_Demo_Restrictions {
 	 * @return void
 	 */
 	public function main_site_check() {
+		$source_id = get_current_blog_id();
 		// If this user already has a sandbox created and it exists, then redirect them to that sandbox
-		if ( isset ( $_SESSION['ninja_demo_sandbox'] ) && ! Ninja_Demo()->is_admin_user() ) {
-			if ( Ninja_Demo()->sandbox->is_active( $_SESSION['ninja_demo_sandbox'] ) ) {
-				if ( is_main_site() ) {
-					wp_redirect( get_blog_details( $_SESSION['ninja_demo_sandbox'] )->siteurl );
-					die;
-				}
+		if ( isset ( $_SESSION[ 'nd_sandbox_' . $source_id ] ) && ! Ninja_Demo()->is_admin_user() ) {
+			if ( Ninja_Demo()->sandbox->is_active( $_SESSION[ 'nd_sandbox_' . $source_id ] ) && ! Ninja_demo()->is_sandbox() ) {
+				wp_redirect( get_blog_details( $_SESSION[ 'nd_sandbox_' . $source_id ] )->siteurl );
+				die;
 			} else {
-				unset( $_SESSION['ninja_demo_sandbox'] );
-				wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+				unset( $_SESSION[ 'nd_sandbox_' . $source_id ] );
+				wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( $source_id )->siteurl ) );
 				die();
 			}
+		
 		}
 
-		// If this user is on the main blog and logged-in in a sandbox, then log them out.
-		if ( is_user_logged_in() && ! Ninja_Demo()->is_sandbox() && ! Ninja_Demo()->is_admin_user() ) {
-			wp_logout();
-			wp_redirect( add_query_arg( array( 'sandbox_expired' => 1 ), get_blog_details( 1 )->siteurl ) );
+		// If this user is trying to access the wp-admin of a non-sandbox site, redirect them.
+		if ( is_admin() && ! Ninja_Demo()->is_sandbox() && ! Ninja_Demo()->is_admin_user() ) {
+			wp_redirect( get_blog_details( $source_id )->siteurl );
 			die();
 		}
 	}
@@ -296,8 +295,10 @@ class Ninja_Demo_Restrictions {
 				foreach( $elements as $element ) {
 
 			        if ( $element->parent == 'my-sites-list' ) {
-			        	if ( $element->id != 'blog-1' )
+			        	$blog_id = str_replace( 'blog-', '', $element->id );
+			        	if ( Ninja_Demo()->is_sandbox( $blog_id ) ) {
 			        		$wp_admin_bar->remove_node( $element->id );
+			        	}
 			        }
 				}				
 			}
