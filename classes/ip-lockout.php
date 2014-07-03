@@ -29,15 +29,21 @@ class Ninja_Demo_IP_Lockout {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function lockout_ip( $ip ) {
+	public function lockout_ip( $ip, $time_expires = '' ) {
 		global $wpdb;
+
+		if ( $time_expires == '' ) {
+			$time_expires = strtotime( '+20 minutes', current_time( 'timestamp' ) );
+		}
+
+		$current_time = current_time( 'timestamp' );
 
 		// Delete any lockouts that this IP may have.
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . ND_IP_LOCKOUT_TABLE . ' WHERE ip = %s', $ip ) );
 
-		// Set a lockout for this IP for twenty minutes.
-		$wpdb->insert( ND_IP_LOCKOUT_TABLE, array( 'ip' => $ip, 'time_set' => current_time( 'timestamp' ), 'time_expires' => strtotime( '+20 minutes', current_time( 'timestamp' ) ) ) );
-	
+		// Set a lockout for this IP for our duration.
+		$wpdb->insert( ND_IP_LOCKOUT_TABLE, array( 'ip' => $ip, 'time_set' => $current_time, 'time_expires' => $time_expires ) );
+		
 		do_action( 'nd_ip_lockout', $ip );
 	}
 
