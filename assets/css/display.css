@@ -81,7 +81,7 @@
     content: "\f472";
 }
 
-html { margin-top: 78px !important; }
+/*html { margin-top: 78px !important; }*/
 * html body { margin-top: 78px !important; }
 @media screen and ( max-width: 782px ) {
     html { margin-top: 106px !important; }

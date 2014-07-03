@@ -51,7 +51,8 @@ class Ninja_Demo_Shortcodes {
 		$tid = $this->set_transient( $spam_a );
 		// Check to see if our IP address is locked out.
 		$ip = $_SERVER['REMOTE_ADDR'];
-		$ip_lockout = Ninja_Demo()->ip->check_ip_lockout( $ip );
+		
+
 		// Get the number of tries we have left before we are locked out.
 		if ( isset ( $_SESSION['ninja_demo_failed'] ) ) {
 			$tries = 4 - $_SESSION['ninja_demo_failed'];
@@ -59,6 +60,7 @@ class Ninja_Demo_Shortcodes {
 
 		ob_start();
 		if ( ! Ninja_Demo()->is_sandbox() ) {
+			$ip_lockout = Ninja_Demo()->ip->check_ip_lockout( $ip );
 		?>
 		<a id="ninja-demo"></a>
 		<div class="nd-start-demo">
@@ -70,7 +72,7 @@ class Ninja_Demo_Shortcodes {
 					<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
 					<input name="nd_create_sandbox" type="hidden" value="1">
 					<input name="tid" type="hidden" value="<?php echo $tid; ?>">
-					<input name="source_id" type="hidden" value="<?php echo $source_id; ?>"
+					<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
 					<div>
 						<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
 						<?php
@@ -108,23 +110,16 @@ class Ninja_Demo_Shortcodes {
 				<?php
 			} else {
 				$expires = round( ( $ip_lockout - current_time( 'timestamp' ) ) / 60 );
+
 				if ( $expires < 1 ) {
 					$expires = 1;
 				}
-				printf( __( 'Your IP address is currently locked out for %d minute.', 'ninja-demo' ), $expires );
-
-				if ( $expires == 1 ) {
-					printf( __( 'Your IP address is currently locked out for %d minute.', 'ninja-demo' ), $expires );
-				} else {
-					printf( __( 'Your IP address is currently locked out for %d minutes.', 'ninja-demo' ), $expires );
-				}
-
 				?>
 				<h4><?php
 				if ( $expires == 1 ) {
-					printf( __( 'Your IP address is currently locked out for %d minute.', 'ninja-demo' ), $expires );
+					printf( __( 'You are unable to create a sandbox for %d minute.', 'ninja-demo' ), $expires );
 				} else {
-					printf( __( 'Your IP address is currently locked out for %d minutes.', 'ninja-demo' ), $expires );
+					printf( __( 'You are unable to create a sandbox for %d minutes.', 'ninja-demo' ), $expires );
 				}
 
 				?></h4>
