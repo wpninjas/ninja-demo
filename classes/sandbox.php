@@ -683,6 +683,10 @@ class Ninja_Demo_Sandbox {
 			}
 	    }
 
+	    // Add our IP Lockout for 10 minutes. This will prevent the user from creating a new sandbox until the lockout has expired.
+	    $time_expires = strtotime( '+10 minutes', current_time( 'timestamp' ) );
+	    Ninja_Demo()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'], $time_expires );
+
 		do_action( 'nd_create_sandbox', $this->target_id );
 
 		// Report
