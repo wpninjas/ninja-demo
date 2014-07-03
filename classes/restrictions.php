@@ -71,7 +71,7 @@ class Ninja_Demo_Restrictions {
 		}
 
 		// If this user is trying to access the wp-admin of a non-sandbox site, redirect them.
-		if ( is_admin() && ! Ninja_Demo()->is_sandbox() && ! Ninja_Demo()->is_admin_user() ) {
+		if ( is_admin() && ! Ninja_Demo()->is_sandbox() && is_user_logged_in() && ! Ninja_Demo()->is_admin_user() ) {
 			wp_redirect( get_blog_details( $source_id )->siteurl );
 			die();
 		}
