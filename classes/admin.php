@@ -557,6 +557,8 @@ class Ninja_Demo_Admin {
 					} else if ( $_POST['license'] != Ninja_Demo()->plugin_settings['license'] ) {
 						$this->deactivate_license( Ninja_Demo()->plugin_settings['license'] );
 						$this->activate_license( $_POST['license'] );
+					} else if ( $_POST['license'] != '' && Ninja_Demo()->plugin_settings['license_status'] != 'valid' ) {
+						$this->activate_license( $_POST['license'] );
 					}
 					Ninja_Demo()->plugin_settings['license'] = $_POST['license'];
 				} else if ( isset ( $_POST['delete_all_sandboxes'] ) ) {
@@ -586,7 +588,7 @@ class Ninja_Demo_Admin {
 		);
  
 		// Call the custom API.
-		$response = wp_remote_get( add_query_arg( $api_params, 'http://ninjademo.com' ) );
+		$response = wp_remote_get( add_query_arg( $api_params, 'http://ninjademo.com/' ) );
  
 		// make sure the response came back okay
 		if ( is_wp_error( $response ) )
