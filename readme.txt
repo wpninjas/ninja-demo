@@ -17,6 +17,18 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
+= 1.0.5 (3 July 2014) =
+
+*Bugs:*
+
+* Fixed a bug that could cause extra space in the header.
+* Fixed a bug that could prevent licenses from being activated properly.
+* Fixed a bug that could cause wp-admins to redirect when accessed from sandboxes.
+
+*Changes:*
+
+* Added a restriction that limit an IP address to one sandbox creation per 10 minutes.
+
 = 1.0.4 (10 June 2014) =
 
 *Bugs:*
