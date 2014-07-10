@@ -4,7 +4,7 @@ Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
 Tested up to: 3.9.1
-Stable tag: 1.0.4
+Stable tag: 1.0.6
 
 License: GPLv2 or later
 
@@ -17,19 +17,19 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
-= 1.0.5 (3 July 2014) =
-
-*Bugs:*
-
-* Fixed a bug that could cause extra space in the header.
-* Fixed a bug that could prevent licenses from being activated properly.
-* Fixed a bug that could cause wp-admins to redirect when accessed from sandboxes.
+= 1.0.6 (10 July 2014) =
 
 *Changes:*
 
-* Added a restriction that limit an IP address to one sandbox creation per 10 minutes.
+* Added a filter to the length of time a user must wait before creating a new sandbox.
 
 == Changelog ==
+
+= 1.0.6 (10 July 2014) =
+
+*Changes:*
+
+* Added a filter to the length of time a user must wait before creating a new sandbox.
 
 = 1.0.5 (3 July 2014) =
 
