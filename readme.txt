@@ -4,7 +4,7 @@ Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
 Tested up to: 3.9.1
-Stable tag: 1.0.4
+Stable tag: 1.0.6
 
 License: GPLv2 or later
 
@@ -17,6 +17,20 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
+= 1.0.6 (10 July 2014) =
+
+*Changes:*
+
+* Added a filter to the length of time a user must wait before creating a new sandbox.
+
+== Changelog ==
+
+= 1.0.6 (10 July 2014) =
+
+*Changes:*
+
+* Added a filter to the length of time a user must wait before creating a new sandbox.
+
 = 1.0.5 (3 July 2014) =
 
 *Bugs:*
@@ -28,22 +42,6 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 *Changes:*
 
 * Added a restriction that limit an IP address to one sandbox creation per 10 minutes.
-
-= 1.0.4 (10 June 2014) =
-
-*Bugs:*
-
-* Fixed a bug that caused main sites to be deleted in some circumstances.
-
-*Changes:*
-
-* Any subsite can now be cloned using the [try_demo source_id=4] shortcode, where 4 is the blog_id of the site you want to base the sandbox on. Defaults to the current blog_id.
-
-* The only user that will be added to the sandbox is the one set to auto-login, with the appropriate role. For security reasons, it is best to remove this auto-login user from any other site.
-
-* Added a new admin page to the Network Admin Dashboard. The license field as well as an overview of sandboxes makes up this page.
-
-== Changelog ==
 
 = 1.0.4 (10 June 2014) =
 
