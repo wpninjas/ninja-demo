@@ -94,9 +94,9 @@ class Ninja_Demo_Sandbox {
 	        FROM $wpdb->blogs
 	        WHERE deleted = '1'"
 	    );
-	    foreach ( $blogs as $blog ) {
+	    foreach ( $blogs as $blog ) {   	
 	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) != 1 ) {
-	    		$wpdb->update( $wpdb->blogs, array( 'deleted' => '0' ) , array( 'ID' => $blog->blog_id ) );
+	    		$wpdb->update( $wpdb->blogs, array( 'deleted' => '0' ) , array( 'blog_id' => $blog->blog_id ) );
 	    	}
 	    }
 	}
