@@ -46,6 +46,7 @@ class Ninja_Demo_Sandbox {
 	public function __construct() {
 		add_action( 'nd_hourly', array( $this, 'purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
+		add_action( 'init', array( $this, 'deleted_site_check' ) );
 		add_action( 'init', array( $this, 'reset_listen' ) );
 		add_action( 'init', array( $this, 'update_state' ) );
 		add_action( 'admin_bar_menu', array( $this, 'add_menu_bar_reset' ), 999 );
@@ -76,6 +77,28 @@ class Ninja_Demo_Sandbox {
 	public function prevent_clone_check() {
 		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && ! NInja_Demo()->is_sandbox() )
 			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
+	}
+
+	/**
+	 * Check to see if any of our blogs have been marked as "deleted."
+	 * If so, undelete them.
+	 * 
+	 * @access public
+	 * @since 1.0.7
+	 * @return void
+	 */
+	public function deleted_site_check() {
+		global $wpdb;
+		$blogs = $wpdb->get_results("
+	        SELECT blog_id
+	        FROM $wpdb->blogs
+	        WHERE deleted = '1'"
+	    );
+	    foreach ( $blogs as $blog ) {
+	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) != 1 ) {
+	    		$wpdb->update( $wpdb->blogs, array( 'deleted' => '0' ) , array( 'ID' => $blog->blog_id ) );
+	    	}
+	    }
 	}
 
 	/**
@@ -173,13 +196,18 @@ class Ninja_Demo_Sandbox {
 
 		// Make sure that our blog_id is an integer.
 		$blog_id = intval( $blog_id );
+		// Make sure that we're on a sandbox
+		if ( get_blog_option( $blog_id, 'nd_sandbox' ) !== 1 )
+			return false;
+
 		$source_id = get_option( 'nd_source_id' );
 
 		$switch = false;
 		if ( get_current_blog_id() != $blog_id ) {
 			$switch = true;
 			switch_to_blog( $blog_id );
-		}			   		// Grab all the tables that have our prefix.
+		}
+		// Grab all the tables that have our prefix.
 
 		$blog = get_blog_details( $blog_id );
 		/**
