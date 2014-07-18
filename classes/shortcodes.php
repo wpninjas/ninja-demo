@@ -73,6 +73,9 @@ class Ninja_Demo_Shortcodes {
 					<input name="nd_create_sandbox" type="hidden" value="1">
 					<input name="tid" type="hidden" value="<?php echo $tid; ?>">
 					<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
+					<?php
+					do_action( 'nd_before_anti_spam', $source_id );
+					?>
 					<div>
 						<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
 						<?php
@@ -94,6 +97,9 @@ class Ninja_Demo_Shortcodes {
 						}
 					?>
 					</div>
+					<?php
+					do_action( 'nd_after_anti_spam', $source_id );
+					?>
 					<div class="ninja-demo-hidden">
 						<label>
 							<?php
