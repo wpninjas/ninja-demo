@@ -72,8 +72,8 @@ class Ninja_Demo_Restrictions {
 
 		// If this user is trying to access the wp-admin of a non-sandbox site, redirect them.
 		if ( is_admin() && ! Ninja_Demo()->is_sandbox() && is_user_logged_in() && ! Ninja_Demo()->is_admin_user() ) {
-			wp_redirect( get_blog_details( $source_id )->siteurl );
-			die();
+			//wp_redirect( get_blog_details( $source_id )->siteurl );
+			//die();
 		}
 	}
 
@@ -86,7 +86,7 @@ class Ninja_Demo_Restrictions {
 	 */
 	public function remove_pages() {
 		global $menu, $pagenow, $submenu;
-		
+
 		if ( ! Ninja_Demo()->is_admin_user() && is_admin() ) {
 			$sub_menu = Ninja_Demo()->html_entity_decode_deep( $submenu );
 			$allowed_pages = apply_filters( 'nd_allowed_pages', array( 'options.php', 'index.php' ) );
@@ -99,6 +99,7 @@ class Ninja_Demo_Restrictions {
 			
 			foreach ( $menu as $item ) {
 				$parent_slug = $item[2];
+
 				if ( ! in_array( $parent_slug, $allowed_menu_links ) ) {
 					remove_menu_page( $parent_slug );
 				} else {
