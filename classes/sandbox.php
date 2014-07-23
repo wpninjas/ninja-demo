@@ -113,11 +113,7 @@ class Ninja_Demo_Sandbox {
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
 	        FROM $wpdb->blogs
-	        WHERE site_id = '1'
-	        AND spam = '0'
-	        AND deleted = '0'
-	        AND archived = '0'
-	        AND blog_id != 1"
+	        WHERE blog_id != 1"
 	    );
 	    $count = 0;
 	    foreach ( $blogs as $blog ) {
@@ -165,11 +161,7 @@ class Ninja_Demo_Sandbox {
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
 	        FROM $wpdb->blogs
-	        WHERE site_id = '1'
-	        AND spam = '0'
-	        AND deleted = '0'
-	        AND archived = '0'
-	        AND blog_id != 1"
+	        WHERE blog_id != 1"
 	    );
 	    foreach ( $blogs as $blog ) {
 	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) == 1 ) {
@@ -197,7 +189,7 @@ class Ninja_Demo_Sandbox {
 		// Make sure that our blog_id is an integer.
 		$blog_id = intval( $blog_id );
 		// Make sure that we're on a sandbox
-		if ( get_blog_option( $blog_id, 'nd_sandbox' ) !== 1 )
+		if ( get_blog_option( $blog_id, 'nd_sandbox' ) != 1 )
 			return false;
 
 		$source_id = get_option( 'nd_source_id' );
@@ -338,11 +330,7 @@ class Ninja_Demo_Sandbox {
 		$blogs = $wpdb->get_results("
 	        SELECT blog_id
 	        FROM $wpdb->blogs
-	        WHERE site_id = '1'
-	        AND spam = '0'
-	        AND deleted = '0'
-	        AND archived = '0'
-	        AND blog_id != 1" );
+	        WHERE blog_id != 1" );
 
 	    $sites = array();
 	    $redirect = false;
