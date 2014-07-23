@@ -4,7 +4,7 @@ Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
 Tested up to: 3.9.1
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 
 License: GPLv2 or later
 
@@ -17,13 +17,19 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
-= 1.0.7 (18 July 2014) =
+= 1.0.8 (23 July 2014) =
 
-*Changes:*
+*Bugs:*
 
-* Added action hooks that fire before and after the anti-spam question in the try_demo shortcode.
+* Fixed a bug that could prevent sandboxes from being deleted properly.
 
 == Changelog ==
+
+= 1.0.8 (23 July 2014) =
+
+*Bugs:*
+
+* Fixed a bug that could prevent sandboxes from being deleted properly.
 
 = 1.0.7 (18 July 2014) =
 
