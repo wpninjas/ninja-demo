@@ -35,6 +35,7 @@ class Ninja_Demo_Sandbox {
 	var $target_id = '';
 	var $status = '';
 	var $global_tables;
+	var $site_address;
 
 	/**
 	 * Get things started
@@ -57,7 +58,8 @@ class Ninja_Demo_Sandbox {
 			'usermeta','users', //don't copy users
 			'bp_.*', //buddypress tables
 			'3wp_broadcast_.*', //3wp broadcast tables
-			ND_IP_LOCKOUT_TABLE // Ninja Demo IP lockout table
+			'demo_ip_lockout', // Ninja Demo IP lockout table
+			'nd_ip_lockout',
 		) );
 
 		if ( strpos( $this->db_host, ':' ) ) {
@@ -199,6 +201,7 @@ class Ninja_Demo_Sandbox {
 			$switch = true;
 			switch_to_blog( $blog_id );
 		}
+
 		// Grab all the tables that have our prefix.
 
 		$blog = get_blog_details( $blog_id );
@@ -215,7 +218,7 @@ class Ninja_Demo_Sandbox {
 		// Remove users from this blog.
 		if ( ! empty( $users ) ) {
 			foreach ( $users as $user_id ) {
-				remove_user_from_blog( $user_id, $blog_id );
+				wpmu_delete_user( $user_id );
 			}
 		}
 
@@ -482,6 +485,8 @@ class Ninja_Demo_Sandbox {
 		$target_subd = '';
 		$target_site = '';
 
+		// Our login settings might not be based upon this blog.
+		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
 
 		//  Start TIMER
 		//  -----------
@@ -494,16 +499,37 @@ class Ninja_Demo_Sandbox {
 			$target_site_name = $this->generate_site_name();			
 		}
 
+		/**
+	     * Creating our user for this sandbox.
+	     */
+
+	    // Get our username.
+	    $user_name = $nd_settings['login_role'] . '-' . $target_site_name;
+	    // Get our user email address.
+	    $user_email = $nd_settings['login_role'] . '@' . $target_site_name .'.com';
+	    // Generate a random password.
+	    $random_password = wp_generate_password( $length = 12, $include_standard_special_chars = false );
+		// Create our user.
+		$user_id = wp_create_user( $user_name, $random_password, $user_email );
+
+		if ( $nd_settings['login_role'] == 'administrator' ) {
+			$owner_user_id = $user_id;
+		} else {
+			// Get our username.
+		    $user_name = 'administrator-' . $target_site_name;
+		    // Get our user email address.
+		    $user_email = 'administrator@' . $target_site_name .'.com';
+		    // Generate a random password.
+		    $random_password = wp_generate_password( $length = 12, $include_standard_special_chars = false );
+			// Create our user.
+			$owner_user_id = wp_create_user( $user_name, $random_password, $user_email );
+			remove_user_from_blog( $owner_user_id, $source_id );
+		}
+		
 		// CREATE THE SITE
 
 		// Create site
-		$this->create_site( $target_site_name, $target_site, $source_id );
-
-		// Start compiling data for success message
-		$site_address = get_blog_details( $this->target_id )->siteurl;
-		// $this->status = $this->status . 'Created site <a href="'.$site_address.'" target="_blank">';
-		// $this->status = $this->status . '<b>'.$site_address.'</b></a> with ID: <b>' . $this->target_id . '</b><br />';
-
+		$this->create_site( $target_site_name, $target_site, $source_id, $owner_user_id );
 
 		// RUN THE CLONING
 		Ninja_Demo()->logs->dlog( 'RUNNING NS Cloner version: ' . ND_PLUGIN_VERSION . ' <br /><br />' );
@@ -516,17 +542,8 @@ class Ninja_Demo_Sandbox {
 		$target_id = $this->target_id;
 		$target_subd = get_current_site()->domain . get_current_site()->path . $target_site_name;
 
-		if ( $source_id == '' || $source_subd == '' || $source_site == '' || $target_id == '' || $target_subd == '' || $target_site == '') {
-			// Clear the querystring and add the results
-			wp_redirect( add_query_arg(
-				array('error' => 'true',
-					  'errormsg' => urlencode( __( 'You must fill out all fields in Cloning section. Otherwise unsafe operation.', 'ns_cloner' ) ),
-					  'updated' => false),
-				wp_get_referer() ) );
-			die;
-		}
 		// prevent the source site name from being contained in the target domain / directory, since the search/replaces will wreak havoc in that scenario
-		elseif( stripos($target_subd, $source_site) !== false ) {
+		if( stripos($target_subd, $source_site) !== false ) {
 				wp_redirect( add_query_arg(
 					array('error' => 'true',
 						  'errormsg' => urlencode( __( "The Source Site Name ($source_site) may not appear in the Target Site Domain ($target_subd) or data corruption will occur. You might need to edit the Source Site's Name in Settings > General, or double-check / change your field input values.", 'ns_cloner' ) ),
@@ -541,31 +558,9 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->dlog ( 'Source Prefix: <b>' . $source_pre . '</b><br />' );
 			Ninja_Demo()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
 
-			// Add support for ThreeWP Broadcast plugin
-			// Thank you John @ propanestudio.com and Aamir
-			// getting already added broad cast id of source id from database
-			// $myrows = $wpdb->get_results( 'SELECT * FROM '.$source_pre.'_3wp_broadcast_broadcastdata where blog_id='.$source_id.'',ARRAY_A );
-			// loop to each data row
-			/*
-			foreach($myrows as $r){
-				if($r['blog_id'] != ""){ // if blog id not empty
-					$dd=unserialize(base64_decode($r['data'])); // decode the data and unserilize this and store into varibale
-					if($dd['linked_parent']['blog_id'] != ""){ // verify this is parnet or child broad cast
-						$pushdata = $dd['linked_parent']['blog_id']	; // if its parnet then store its id and make a dataabse request and fetch data of that id
-						$myrow = $wpdb->get_results( 'SELECT * FROM '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata where blog_id='.$pushdata.'', ARRAY_A);
-						$enc=unserialize(base64_decode($myrow[0]['data'])); // unserilize and decode data
-						Ninja_Demo()->logs->dlog ( 'Adding ThreeWPBroadcast data: <b>' . print_r($enc,true) . '</b><br />' ); //log data
-						$enc['linked_children'][$target_id]=$r['post_id']; // merge newly added site id and post id unserlize data
-						$enc=base64_encode(serialize($enc)); // again serlize this and decode this and save into db
-						$wpdb->query('UPDATE '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET data="'.$enc.'" where blog_id='.$pushdata.'');
-					}
-					// add child elemnts of broad cast for new site id
-					$wpdb->query('INSERT into '.$wpdb->base_prefix.'_3wp_broadcast_broadcastdata SET blog_id='.$target_id.',post_id='.$r['post_id'].',data="'.$r['data'].'"');
-				}
-			}
-			*/
 			//clone
-			$this->run_clone($source_pre, $target_pre);
+			$this->run_clone( $source_pre, $target_pre );
+			
 		}
 
 		// RUN THE STANDARD REPLACEMENTS
@@ -579,8 +574,8 @@ class Ninja_Demo_Sandbox {
 		// REPLACEMENTS FOR ROOT SITE CLONING
 		// uploads location
 		$main_uploads_target = '';
-		if($source_id==1){
-			switch_to_blog(1);
+		if( 1 == $source_id ){
+			switch_to_blog( 1 );
 			$main_uploads_info = wp_upload_dir();
 			restore_current_blog();
 			//$main_uploads_dir = str_replace( get_site_url('/'), '', $main_uploads_info['baseurl'] );
@@ -611,26 +606,19 @@ class Ninja_Demo_Sandbox {
 		foreach( $replace_array as $search_for => $replace_with) {
 			Ninja_Demo()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
 		}
-		$this->run_replace($target_pre, $replace_array);
 
+		$this->run_replace( $target_pre, $replace_array );
+		
 		// COPY ALL MEDIA FILES
 		// get the right paths to use
 		// handle for uploads location when cloning root site
 		$src_blogs_dir = $this->get_upload_folder($source_id);
-		if($source_id==1){
+
+		if( 1 == $source_id ){
 			$dst_blogs_dir = $main_uploads_target;
-		}
-		else {
+		} else {
 			$dst_blogs_dir = $this->get_upload_folder($this->target_id);
 		}
-
-		// Fix file dir when cloning root directory
-		// Fix some instances where physical paths have numbers in them
-		// Thank you, Christian for the catch!
-		//$dst_blogs_dir = str_replace($source_id, $target_id, $src_blogs_dir );
-		//$dst_blogs_dir = str_replace( '/' . $source_id, '/' . $target_id, $src_blogs_dir );
-		// moved up in the conditional
-		//$dst_blogs_dir = $this->get_upload_folder($this->target_id);
 
 		//fix for paths on windows systems
 		if (strpos($src_blogs_dir,'/') !== false && strpos($src_blogs_dir,'\\') !== false ) {
@@ -675,18 +663,14 @@ class Ninja_Demo_Sandbox {
 
 	    // Set an option that marks this sandbox's source id
 	    update_blog_option( $this->target_id, 'nd_source_id', $source_id );
-		
-		// Auto-login our user if we aren't the super admin
-
-		// Our login settings might not be based upon this blog.
-		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
-
-	    if ( isset ( $nd_settings['auto_login'] ) && $nd_settings['auto_login'] !== '' && ! Ninja_Demo()->is_admin_user() ) {
-		    wp_clear_auth_cookie();
-		    wp_set_auth_cookie( $nd_settings['auto_login'], true );
-		    wp_set_current_user( $nd_settings['auto_login'] );	    	
-	    }
-
+	
+		// Login our user.
+		add_user_to_blog( $this->target_id, $user_id, $nd_settings['login_role'] );
+		remove_user_from_blog( $user_id, $source_id );
+		wp_clear_auth_cookie();
+	    wp_set_auth_cookie( $user_id, true );
+	    wp_set_current_user( $user_id );	    	
+	    
 	    // Set our "last updated" time to the current time.
 	    $wpdb->update( $wpdb->blogs, array( 'last_updated' => current_time( 'mysql' ) ), array( 'blog_id' => $this->target_id ) );
 	    
@@ -718,8 +702,8 @@ class Ninja_Demo_Sandbox {
 		Ninja_Demo()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//  ---------
 
-		wp_redirect( apply_filters( 'nd_create_redirect', $site_address, $this->target_id ) );
-		die;
+		wp_redirect( apply_filters( 'nd_create_redirect', $this->site_address, $this->target_id ) );
+		die();
 	}
 
 	/**
@@ -748,12 +732,10 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function create_site( $sitename, $sitetitle, $source_id ) {
+	private function create_site( $sitename, $sitetitle, $source_id, $user_id ) {
 		global $wpdb, $current_site, $current_user;
 		get_currentuserinfo();
 
-		$blog_id = '';
-		$user_id = '';
 		$base = PATH_CURRENT_SITE;
 
 		$tmp_domain = strtolower( esc_html( $sitename ) );
@@ -769,8 +751,6 @@ class Ninja_Demo_Sandbox {
 		$create_site_name = $sitename;
 		$create_site_title = $sitetitle;
 
-		$user_id = Ninja_Demo()->plugin_settings['admin_id'];
-
 		$site_id = get_id_from_blogname( $create_site_name );
 
 		// create site and don't forget to make public:
@@ -784,6 +764,18 @@ class Ninja_Demo_Sandbox {
 		} else {
 			Ninja_Demo()->logs->log( 'Error creating site: ' . $tmp_site_domain . $tmp_site_path . ' - ' . $site_id->get_error_message() );
 		}
+
+		if ( is_ssl() ) {
+			$protocol = 'https://';
+		} else {
+			$protocol = 'http://';
+		}
+
+		$this->site_address = $protocol . $tmp_site_domain . $tmp_site_path;
+
+		// Update our site url.
+		update_blog_option( $site_id, 'siteurl', $this->site_address );
+		update_blog_option( $site_id, 'home', $this->site_address );
 
 		// Our login settings might not be based upon this blog.
 		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
@@ -819,7 +811,7 @@ class Ninja_Demo_Sandbox {
 		mysqli_set_charset( $cid, DB_CHARSET );
 
 		//get list of source tables when cloning root
-		if($source_prefix==$wpdb->base_prefix){
+		if( $source_prefix == $wpdb->base_prefix ){
 			$tables = $wpdb->get_results('SHOW TABLES');
 			$global_table_pattern = "/^$wpdb->base_prefix(" .implode('|',$this->global_tables). ")$/";
 			$table_names = array();
