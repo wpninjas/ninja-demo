@@ -29,6 +29,8 @@ class Ninja_Demo_Sandbox {
 	var $db_user = DB_USER;
 	var $db_pass = DB_PASSWORD;
 
+	var $table_rows = array();
+
 	/**
 	 * @var Class Globals
 	 */
@@ -542,6 +544,14 @@ class Ninja_Demo_Sandbox {
 		$target_id = $this->target_id;
 		$target_subd = get_current_site()->domain . get_current_site()->path . $target_site_name;
 
+		if ( $this->db_port != '' ) {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
+		} else {
+			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
+		}
+		
+		mysqli_set_charset( $cid, DB_CHARSET );
+
 		// prevent the source site name from being contained in the target domain / directory, since the search/replaces will wreak havoc in that scenario
 		if( stripos($target_subd, $source_site) !== false ) {
 				wp_redirect( add_query_arg(
@@ -559,8 +569,7 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
 
 			//clone
-			$this->run_clone( $source_pre, $target_pre );
-			
+			$this->run_clone( $cid, $source_pre, $target_pre );
 		}
 
 		// RUN THE STANDARD REPLACEMENTS
@@ -607,7 +616,7 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
 		}
 
-		$this->run_replace( $target_pre, $replace_array );
+		$this->run_replace( $cid, $target_pre, $replace_array );
 		
 		// COPY ALL MEDIA FILES
 		// get the right paths to use
@@ -676,12 +685,15 @@ class Ninja_Demo_Sandbox {
 	    
 	    // Get a list of our active plugins.
 	    $plugins = get_option( 'active_plugins' );
-	    foreach( $plugins as $plugin ) {
-		    if ( apply_filters( 'nd_activate_plugin', false, $plugin ) ) {
-				deactivate_plugins( $plugin );
-				activate_plugin( $plugin );
-			}
+	    if ( ! empty( $plugins ) ) {
+		    foreach( $plugins as $plugin ) {
+			    if ( apply_filters( 'nd_activate_plugin', false, $plugin ) ) {
+					deactivate_plugins( $plugin );
+					activate_plugin( $plugin );
+				}
+		    }	    	
 	    }
+
 
 	    // Add our IP Lockout for 10 minutes. This will prevent the user from creating a new sandbox until the lockout has expired.
 	    $time_expires = apply_filters( 'nd_create_lockout_time', strtotime( '+10 minutes', current_time( 'timestamp' ) ) );
@@ -701,6 +713,8 @@ class Ninja_Demo_Sandbox {
 		Ninja_Demo()->logs->log ( $target_subd . " cloned in " . ($etimer-$stimer) . " seconds."  );
 		Ninja_Demo()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//  ---------
+
+		mysqli_close( $cid );
 
 		wp_redirect( apply_filters( 'nd_create_redirect', $this->site_address, $this->target_id ) );
 		die();
@@ -796,19 +810,11 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 
-	private function run_clone( $source_prefix, $target_prefix ) {
+	private function run_clone( $cid, $source_prefix, $target_prefix ) {
 		global $report, $wpdb;
 
 		// Get a list of our current sandbox sites
 		$sandboxes = wp_get_sites();
-
-		if ( $this->db_port != '' ) {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
-		} else {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
-		}
-		
-		mysqli_set_charset( $cid, DB_CHARSET );
 
 		//get list of source tables when cloning root
 		if( $source_prefix == $wpdb->base_prefix ){
@@ -839,7 +845,7 @@ class Ninja_Demo_Sandbox {
 				$source_table = $tables[0];
 				// Check to see if this table belongs to another clone.
 				foreach ( $sandboxes as $s ) {
-					if ( strpos( $source_table, $source_prefix . $s['blog_id'] ) !== false ) {
+					if ( strpos( $source_table, $wpdb->base_prefix . $s['blog_id'] ) !== false ) {
 						continue 2;
 					}
 				}
@@ -855,7 +861,7 @@ class Ninja_Demo_Sandbox {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
 					Ninja_Demo()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
-					$this->clone_table($source_table, $target_table);
+					$this->clone_table( $cid, $source_table, $target_table );
 				}
 				else {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
@@ -871,8 +877,7 @@ class Ninja_Demo_Sandbox {
 		if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br /><br />'); }
 		$report .= 'Cloned: <b>' .$num_tables . '</b> tables!<br/ >';
 		Ninja_Demo()->logs->dlog('Cloned: <b>' .$num_tables . '</b> tables!<br/ >');
-
-		mysqli_close($cid);
+		mysqli_free_result( $tables_list );
 	}
 
 	/**
@@ -926,16 +931,8 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function clone_table( $source_table, $target_table ) {
+	private function clone_table( $cid, $source_table, $target_table ) {
 		$sql_statements = '';
-
-		if ( $this->db_port != '' ) {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
-		} else {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
-		}
-
-		mysqli_set_charset( $cid, DB_CHARSET );
 
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
 
@@ -997,6 +994,8 @@ class Ninja_Demo_Sandbox {
 		$replace	= array('\0', '\n', '\r', '\Z');
 		$current_row	= 0;
 
+		$query = '';
+
 		while ( $row = mysqli_fetch_row( $result ) ) {
 			$current_row++;
 			// Tracks the _transient_feed_ and _transient_rss_ garbage for exclusion
@@ -1012,7 +1011,8 @@ class Ninja_Demo_Sandbox {
 					else {
 						// don't include _transient_feed_ bloat
 						if (!$is_trans) {
-							$values[] = "'" . str_replace( $search, $replace, $this->sql_addslashes($row[$j] ) ) . "'";
+							$row[$j] = str_replace( "&#039;", "'", $row[$j] );
+							$values[] = "'" . str_replace( $search, $replace, $this->sql_addslashes( $row[$j] ) ) . "'";
 						}
 						else {
 							$values[]     = "''";
@@ -1028,25 +1028,28 @@ class Ninja_Demo_Sandbox {
 			} // for ($j = 0; $j < $fields_cnt; $j++)
 
 			// Execute current insert row statement
-			$query = $entries . implode(', ', $values) . ')';
+			$query .= $entries . implode(', ', $values) . ');';
 			if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $query . '<br />'); }
-			// Have to separate this into its own function otherwise it interfers with current mysql connection / results
-			$this->insert_query($query);
-
 			unset($values);
 		} // while ($row = mysql_fetch_row($result))
+
 		mysqli_free_result( $result );
+
+		if ( ! empty( $query ) ) {
+			$this->insert_query( $query );
+		}
+		
 	}
 
 	/**
-	 * Insert our data
-	 *
+	 * Run our insert statement.
+	 * 
 	 * @access private
-	 * @since 1.0
+	 * @since 1.0.9
 	 * @return void
 	 */
-	private function insert_query($query) {
-
+	private function insert_query( $query ) {
+		
 		if ( $this->db_port != '' ) {
 			$insert = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
 		} else {
@@ -1055,8 +1058,8 @@ class Ninja_Demo_Sandbox {
 
 		mysqli_set_charset( $insert, DB_CHARSET );
 
-		$results = mysqli_query( $insert, $query );
-		if ($results == FALSE) { Ninja_Demo()->logs->dlog ( '<b>ERROR</b> inserting into table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $insert ) . '<br />'); }
+		$results = mysqli_multi_query( $insert, $query );
+		if ( $results == FALSE ) { Ninja_Demo()->logs->dlog ( '<b>ERROR</b> inserting into table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $insert ) . '<br />'); }
 		mysqli_close( $insert );
 	}
 
@@ -1067,16 +1070,8 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function run_replace( $target_prefix, $replace_array ) {
+	private function run_replace( $cid, $target_prefix, $replace_array ) {
 		global $report, $count_tables_checked, $count_items_checked, $count_items_changed;
-
-		if ( $this->db_port != '' ) {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
-		} else {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
-		}
-
-		mysqli_set_charset( $cid, DB_CHARSET );
 
 		if (!$cid) { Ninja_Demo()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
 
@@ -1197,7 +1192,6 @@ class Ninja_Demo_Sandbox {
 			}
 			/*---------------------------------------------------------------------------------------------------------*/
 		}
-		mysqli_close( $cid );
 	}
 
 	/**
