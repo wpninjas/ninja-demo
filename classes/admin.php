@@ -180,39 +180,8 @@ class Ninja_Demo_Admin {
 											<label for="auto_login"><?php _e( 'Auto-Login Users As', 'ninja-demo' ); ?></label>
 										</th>
 										<td>
-											<?php
-											$users = new WP_User_Query( array( 'blog_id' => 0 ) );
-											?>
-											<fieldset>
-												<select name="auto_login">
-													<option value=""><?php _e( '- None', 'ninja-demo' ); ?>
-													<?php
-		
-													if ( is_object( $users ) ) {
-														foreach ( $users->results as $user ) {
-															if ( ! user_can( $user->ID, 'manage_network_options' ) ) {
-																?>
-																<option value="<?php echo $user->ID; ?>" <?php selected( $user->ID, Ninja_Demo()->settings['auto_login'] ); ?> ><?php echo $user->user_login;?></option>
-																<?php
-															}
-														}
-													}
-
-													?>
-												</select>
-											</fieldset>
-										</td>
-									</tr>
-									<tr>
-										<th>
-											<fieldset>
-												<?php _e( 'With this role', 'ninja-demo' ); ?>
-											</fieldset>
-										</th>
-										<td>
 											<fieldset>
 												<select name="login_role">
-													<option value=""><?php _e( '- None', 'ninja-demo' ); ?></option>
 													<?php
 													$roles = get_editable_roles();
 													foreach ( $roles as $slug => $role ) {
@@ -223,7 +192,7 @@ class Ninja_Demo_Admin {
 													?>
 												</select>
 											</fieldset>
-											<span class="howto"><?php _e( 'If you have set a user above, please set a role here.', 'ninja-demo' ); ?></span>
+											<span class="howto"></span>
 										</td>
 									</tr>
 								</tbody>
@@ -295,6 +264,7 @@ class Ninja_Demo_Admin {
 									</tr>
 								</tbody>
 								</table>
+								
 								<div>
 									<input class="button-primary" name="ninja_demo_settings" type="submit" value="<?php _e( 'Save', 'ninja-demo' ); ?>" />
 								</div>
@@ -523,7 +493,6 @@ class Ninja_Demo_Admin {
 						Ninja_Demo()->settings['offline'] = $_POST['offline'];
 						Ninja_Demo()->settings['prevent_clones'] = $_POST['prevent_clones'];
 						Ninja_Demo()->settings['log'] = $_POST['log'];
-						Ninja_Demo()->settings['auto_login'] = $_POST['auto_login'];
 						Ninja_Demo()->settings['login_role'] = $_POST['login_role'];
 						
 					} else if ( $current_tab == 'theme' ) {

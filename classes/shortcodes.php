@@ -40,6 +40,9 @@ class Ninja_Demo_Shortcodes {
 	 * @return string $output
 	 */
 	public function try_button( $atts ) {
+
+		
+
 		if ( isset ( $atts['source_id'] ) ) {
 			$source_id = $atts['source_id'];
 		} else {
@@ -51,91 +54,104 @@ class Ninja_Demo_Shortcodes {
 		$tid = $this->set_transient( $spam_a );
 		// Check to see if our IP address is locked out.
 		$ip = $_SERVER['REMOTE_ADDR'];
-		
 
+		Ninja_Demo()->ip->free_ip( $ip );
+		
 		// Get the number of tries we have left before we are locked out.
 		if ( isset ( $_SESSION['ninja_demo_failed'] ) ) {
 			$tries = 4 - $_SESSION['ninja_demo_failed'];
 		}
-
-		ob_start();
-		if ( ! Ninja_Demo()->is_sandbox() ) {
+		
+		if ( ! Ninja_Demo()->is_sandbox() )
 			$ip_lockout = Ninja_Demo()->ip->check_ip_lockout( $ip );
-		?>
-		<a id="ninja-demo"></a>
-		<div class="nd-start-demo">
-			<?php
-			// Check to
-			if ( ! $ip_lockout ) {
-				?>
-				<form action="#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
-					<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
-					<input name="nd_create_sandbox" type="hidden" value="1">
-					<input name="tid" type="hidden" value="<?php echo $tid; ?>">
-					<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
-					<?php
-					do_action( 'nd_before_anti_spam', $source_id );
-					?>
-					<div>
-						<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
-						<?php
-						if ( isset ( $_POST['spam_a'] ) && $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
-						?>
-							<div>
-								<?php _e( 'Incorrect answer. Please try again.', 'ninja-demo' ); ?>
-							</div>
-							<div>
-								<?php
-								if ( $tries == 1 ) {
-									printf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-								} else {
-									printf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-								}
-								?>
-							</div>
-						<?php
-						}
-					?>
-					</div>
-					<?php
-					do_action( 'nd_after_anti_spam', $source_id );
-					?>
-					<div class="ninja-demo-hidden">
-						<label>
-							<?php
-							_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-forms' );
-							?>
-						</label>
-						<input name="spamcheck" type="text" value="">
-					</div>
-					<p class="submit no-border">
-						<input name="submit" value="<?php _e( 'Try the demo!', 'ninja-demo' ) ?>" type="submit" /><br /><br />
-					</p>
-				</form>
 
-				<?php
-			} else {
-				$expires = round( ( $ip_lockout - current_time( 'timestamp' ) ) / 60 );
-
-				if ( $expires < 1 ) {
-					$expires = 1;
-				}
-				?>
-				<h4><?php
-				if ( $expires == 1 ) {
-					printf( __( 'You are unable to create a sandbox for %d minute.', 'ninja-demo' ), $expires );
-				} else {
-					printf( __( 'You are unable to create a sandbox for %d minutes.', 'ninja-demo' ), $expires );
-				}
-
-				?></h4>
-				<?php
-			}
+		$output = '';
+		
+		if ( ! Ninja_Demo()->is_sandbox() ) {
+			
+			ob_start();
+			
 			?>
-		</div>
-		<?php
+			<a id="ninja-demo"></a>
+			<div class="nd-start-demo">
+				<?php
+				// Check to
+				if ( ! $ip_lockout ) {
+
+					?>
+					<form action="#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
+						<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
+						<input name="nd_create_sandbox" type="hidden" value="1">
+						<input name="tid" type="hidden" value="<?php echo $tid; ?>">
+						<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
+						<?php
+						do_action( 'nd_before_anti_spam', $source_id );
+						?>
+						<div>
+							<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
+							<?php
+							if ( isset ( $_POST['spam_a'] ) && $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
+							?>
+								<div>
+									<?php _e( 'Incorrect answer. Please try again.', 'ninja-demo' ); ?>
+								</div>
+								<div>
+									<?php
+									if ( $tries == 1 ) {
+										printf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
+									} else {
+										printf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
+									}
+									?>
+								</div>
+							<?php
+							}
+						?>
+						</div>
+						<?php
+						do_action( 'nd_after_anti_spam', $source_id );
+						?>
+						<div class="ninja-demo-hidden">
+							<label>
+								<?php
+								_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-forms' );
+								?>
+							</label>
+							<input name="spamcheck" type="text" value="">
+						</div>
+						<p class="submit no-border">
+							<input name="submit" value="<?php _e( 'Try the demo!', 'ninja-demo' ) ?>" type="submit" /><br /><br />
+						</p>
+					</form>
+
+					<?php
+				} else {
+					$expires = round( ( $ip_lockout - current_time( 'timestamp' ) ) / 60 );
+
+					if ( $expires < 1 ) {
+						$expires = 1;
+					}
+					?>
+					<h4><?php
+					if ( $expires == 1 ) {
+						printf( __( 'You are unable to create a sandbox for %d minute.', 'ninja-demo' ), $expires );
+					} else {
+						printf( __( 'You are unable to create a sandbox for %d minutes.', 'ninja-demo' ), $expires );
+					}
+
+					
+					if ( isset ( $_POST['tid'] ) )
+						delete_transient( $_POST['tid'] );
+					?></h4>
+					<?php
+				}
+				?>
+			</div>
+			<?php
+		
+			$output = ob_get_clean();
 		} // End is_sandbox check
-		$output = ob_get_clean();
+
 		return $output;
 	}
 

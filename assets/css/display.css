@@ -82,12 +82,12 @@
 }
 
 /*html { margin-top: 78px !important; }*/
-* html body { margin-top: 78px !important; }
+/** html body { margin-top: 78px !important; }
 @media screen and ( max-width: 782px ) {
     html { margin-top: 106px !important; }
     * html body { margin-top: 106px !important; }
     .admin-bar .nd-toolbar { top: 46px; }
-}
+}*/
 
 .wrapper-dropdown-5 {
     /* Size & position */

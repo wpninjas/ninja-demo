@@ -29,7 +29,8 @@ class Ninja_Demo_Sandbox {
 	var $db_user = DB_USER;
 	var $db_pass = DB_PASSWORD;
 
-	var $table_rows = array();
+	var $table_query_count = 0;
+	var $table_query = '';
 
 	/**
 	 * @var Class Globals
@@ -47,11 +48,13 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	public function __construct() {
-		add_action( 'nd_hourly', array( $this, 'purge' ) );
+		add_action( 'wp_footer', array( $this, 'purge' ) );
+		add_action( 'nd_hourly', array( $this, 'check_purge' ) );
 		add_action( 'init', array( $this, 'prevent_clone_check' ) );
 		add_action( 'init', array( $this, 'deleted_site_check' ) );
 		add_action( 'init', array( $this, 'reset_listen' ) );
 		add_action( 'init', array( $this, 'update_state' ) );
+
 		add_action( 'admin_bar_menu', array( $this, 'add_menu_bar_reset' ), 999 );
 
 		//define which tables to skip by default when cloning root site
@@ -190,6 +193,8 @@ class Ninja_Demo_Sandbox {
 	public function delete( $blog_id, $drop = true ) {
 		global $wpdb;
 
+		require_once ( ABSPATH . 'wp-admin/includes/ms.php' );
+
 		// Make sure that our blog_id is an integer.
 		$blog_id = intval( $blog_id );
 		// Make sure that we're on a sandbox
@@ -322,6 +327,17 @@ class Ninja_Demo_Sandbox {
 	}
 
 	/**
+	 * Add our purge action for execution
+	 * 
+	 * @access public
+	 * @since 1.0.9
+	 * @return void
+	 */
+	public function check_purge() {
+		add_action( 'wp_footer', array( $this, 'purge' ) );
+	}
+
+	/**
 	 * Check to see if any of our sandboxes need to be purged.
 	 *
 	 * @access public
@@ -340,6 +356,7 @@ class Ninja_Demo_Sandbox {
 	    $sites = array();
 	    $redirect = false;
 	    foreach ( $blogs as $blog ) {
+	    	
 	    	if ( get_blog_option( $blog->blog_id, 'nd_sandbox' ) == 1 ) {
 		   		// If we've been alive longer than the lifespan, delete the sandbox.
 		   		if ( apply_filters( 'nd_purge_sandbox', $this->has_expired( $blog->blog_id ), $blog->blog_id ) ) {
@@ -349,8 +366,9 @@ class Ninja_Demo_Sandbox {
 						$source_id = get_blog_option( $blog->blog_id, 'nd_source_id' );
 					}
 					$this->delete( $blog->blog_id );
-		   		}	    		
+		   		}
 	    	}
+	    	
 		}
 
 		if ( $redirect ) {
@@ -544,14 +562,6 @@ class Ninja_Demo_Sandbox {
 		$target_id = $this->target_id;
 		$target_subd = get_current_site()->domain . get_current_site()->path . $target_site_name;
 
-		if ( $this->db_port != '' ) {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
-		} else {
-			$cid = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name );
-		}
-		
-		mysqli_set_charset( $cid, DB_CHARSET );
-
 		// prevent the source site name from being contained in the target domain / directory, since the search/replaces will wreak havoc in that scenario
 		if( stripos($target_subd, $source_site) !== false ) {
 				wp_redirect( add_query_arg(
@@ -569,7 +579,8 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->dlog ( 'Target Prefix: <b>' . $target_pre . '</b><br />' );
 
 			//clone
-			$this->run_clone( $cid, $source_pre, $target_pre );
+			$this->run_clone( $source_pre, $target_pre );
+			//$this->insert_query( $this->insert_query );
 		}
 
 		// RUN THE STANDARD REPLACEMENTS
@@ -616,7 +627,7 @@ class Ninja_Demo_Sandbox {
 			Ninja_Demo()->logs->dlog ( 'Replace: <b>' . $search_for . '</b> >> With >> <b>' . $replace_with . '</b><br />' );
 		}
 
-		$this->run_replace( $cid, $target_pre, $replace_array );
+		$this->run_replace( $target_pre, $replace_array );
 		
 		// COPY ALL MEDIA FILES
 		// get the right paths to use
@@ -696,8 +707,8 @@ class Ninja_Demo_Sandbox {
 
 
 	    // Add our IP Lockout for 10 minutes. This will prevent the user from creating a new sandbox until the lockout has expired.
-	    $time_expires = apply_filters( 'nd_create_lockout_time', strtotime( '+10 minutes', current_time( 'timestamp' ) ) );
-	    Ninja_Demo()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'], $time_expires );
+	    // $time_expires = apply_filters( 'nd_create_lockout_time', strtotime( '+10 minutes', current_time( 'timestamp' ) ) );
+	    // Ninja_Demo()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'], $time_expires );
 
 		do_action( 'nd_create_sandbox', $this->target_id );
 
@@ -714,7 +725,9 @@ class Ninja_Demo_Sandbox {
 		Ninja_Demo()->logs->dlog ( "Entire cloning process took: <strong>" . ($etimer-$stimer) . "</strong> seconds."  );
 		//  ---------
 
-		mysqli_close( $cid );
+		// Update our site url.
+		update_blog_option( $this->target_id, 'siteurl', $this->site_address );
+		update_blog_option( $this->target_id, 'home', $this->site_address );
 
 		wp_redirect( apply_filters( 'nd_create_redirect', $this->site_address, $this->target_id ) );
 		die();
@@ -788,8 +801,8 @@ class Ninja_Demo_Sandbox {
 		$this->site_address = $protocol . $tmp_site_domain . $tmp_site_path;
 
 		// Update our site url.
-		update_blog_option( $site_id, 'siteurl', $this->site_address );
-		update_blog_option( $site_id, 'home', $this->site_address );
+		update_blog_option( $this->target_id, 'siteurl', $this->site_address );
+		update_blog_option( $this->target_id, 'home', $this->site_address );
 
 		// Our login settings might not be based upon this blog.
 		$nd_settings = get_blog_option( $source_id, 'ninja_demo' );
@@ -810,7 +823,7 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 
-	private function run_clone( $cid, $source_prefix, $target_prefix ) {
+	private function run_clone( $source_prefix, $target_prefix ) {
 		global $report, $wpdb;
 
 		// Get a list of our current sandbox sites
@@ -836,12 +849,12 @@ class Ninja_Demo_Sandbox {
 			$SQL = 'SHOW TABLES LIKE \'' . str_replace( '_', '\_', $source_prefix ) . '%\'';
 		}
 
-		$tables_list = mysqli_query( $cid, $SQL );
+		$tables_list = $wpdb->get_results( $SQL, ARRAY_N );
 
 		$num_tables = 0;
 
-		if ($tables_list != false) {
-			while ( $tables = mysqli_fetch_array( $tables_list ) ) {
+		if ( isset ( $tables_list[0] ) && ! empty ( $tables_list[0] ) ) {
+			foreach ( $tables_list as $tables ) {
 				$source_table = $tables[0];
 				// Check to see if this table belongs to another clone.
 				foreach ( $sandboxes as $s ) {
@@ -861,7 +874,7 @@ class Ninja_Demo_Sandbox {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
 					Ninja_Demo()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
-					$this->clone_table( $cid, $source_table, $target_table );
+					$this->clone_table( $source_table, $target_table );
 				}
 				else {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
@@ -877,7 +890,6 @@ class Ninja_Demo_Sandbox {
 		if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br /><br />'); }
 		$report .= 'Cloned: <b>' .$num_tables . '</b> tables!<br/ >';
 		Ninja_Demo()->logs->dlog('Cloned: <b>' .$num_tables . '</b> tables!<br/ >');
-		mysqli_free_result( $tables_list );
 	}
 
 	/**
@@ -931,7 +943,9 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function clone_table( $cid, $source_table, $target_table ) {
+	private function clone_table( $source_table, $target_table ) {
+		global $wpdb;
+
 		$sql_statements = '';
 
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
@@ -939,21 +953,20 @@ class Ninja_Demo_Sandbox {
 		if ( isset( $_POST['is_debug'] ) )
 			Ninja_Demo()->logs->dlog ( $query . '<br /><br />');
 
-		$result = mysqli_query( $cid, $query );
+		$result = $wpdb->query( $query );
 		if ( $result == false )
-			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> dropping table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> dropping table with sql - ' . $query . '<br /><b>SQL Error</b> - ' . $wpdb->last_error . '<br />' );
 
 		// Table structure - Get table structure
 		$query = "SHOW CREATE TABLE " . $this->backquote( $source_table );
-		$result = mysqli_query( $cid, $query );
+		$result = $wpdb->get_row( $query, ARRAY_A );
+
 		if ( $result == false ) {
-			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . $wpdb->last_error . '<br />' );
 		} else {
-			if ( mysqli_num_rows( $result ) > 0 ) {
-				$sql_create_arr = mysqli_fetch_array( $result );
-				$sql_statements .= $sql_create_arr[1];
+			if ( ! empty ( $result ) ) {
+				$sql_statements .= $result[ 'Create Table' ];
 			}
-			mysqli_free_result( $result );
 		}
 
 		// Create cloned table structure
@@ -961,30 +974,30 @@ class Ninja_Demo_Sandbox {
 		if ( isset( $_POST['is_debug'] ) )
 			Ninja_Demo()->logs->dlog ( $query . '<br /><br />');
 
-		$result = mysqli_query( $cid, $query );
+		$result = $wpdb->query( $query );
 		if ( $result == false )
-			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> creating table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> creating table structure with sql - ' . $query . '<br /><b>SQL Error</b> - ' . $wpdb->last_error . '<br />' );
 
 		// Table data contents - Get table contents
 		$query = "SELECT * FROM " . $this->backquote( $source_table );
-		$result = mysqli_query( $cid, $query );
+		$result = $wpdb->get_results( $query, ARRAY_N );
+
+		$fields_cnt = 0;
 		if ( $result == false ) {
-			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table contents with sql - ' . $query . '<br /><b>SQL Error</b> - ' . mysqli_error( $cid ) . '<br />' );
+			Ninja_Demo()->logs->dlog ( '<b>ERROR</b> getting table contents with sql - ' . $query . '<br /><b>SQL Error</b> - ' . $wpdb->last_error . '<br />' );
 		} else {
-			$fields_cnt = mysqli_num_fields( $result );
-			$rows_cnt   = mysqli_num_rows( $result );
+			$fields_cnt = count( $result[0] );
+			$rows_cnt   = $wpdb->num_rows;
 		}
 
 		// Checks whether the field is an integer or not
 		for ( $j = 0; $j < $fields_cnt; $j++ ) {
-			$field_result = mysqli_fetch_field_direct( $result, $j );
-			$field_set[$j] = $this->backquote( $field_result->name );
-			$type = $field_result->type;
+			$type = $wpdb->get_col_info( 'type', $j );
 			// removed ||$type == 'timestamp' from this check because it's invalid - timestamp values need ' ' surrounding to insert successfully
 			if ( $type == 'tinyint' || $type == 'smallint' || $type == 'mediumint' || $type == 'int' || $type == 'bigint') {
-				$field_num[$j] = true;
+				$field_num[ $j ] = true;
 			} else {
-				$field_num[$j] = false;
+				$field_num[ $j ] = false;
 			}
 		} // end for
 
@@ -994,16 +1007,14 @@ class Ninja_Demo_Sandbox {
 		$replace	= array('\0', '\n', '\r', '\Z');
 		$current_row	= 0;
 
-		$query = '';
-
-		while ( $row = mysqli_fetch_row( $result ) ) {
+		foreach( $result as $row ) {
 			$current_row++;
 			// Tracks the _transient_feed_ and _transient_rss_ garbage for exclusion
 			$is_trans = false;
 			for ($j = 0; $j < $fields_cnt; $j++) {
-				if (!isset($row[$j])) {
+				if ( ! isset($row[ $j ] ) ) {
 					$values[]     = 'NULL';
-				} else if ($row[$j] == '0' || $row[$j] != '') {
+				} else if ( $row[ $j ] == '0' || $row[ $j ] != '') {
 					// a number
 					if ($field_num[$j]) {
 						$values[] = $row[$j];
@@ -1028,17 +1039,21 @@ class Ninja_Demo_Sandbox {
 			} // for ($j = 0; $j < $fields_cnt; $j++)
 
 			// Execute current insert row statement
-			$query .= $entries . implode(', ', $values) . ');';
+			$this->table_query .= $entries . implode(', ', $values) . ');';
+			//$wpdb->query( $query );
 			if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $query . '<br />'); }
 			unset($values);
 		} // while ($row = mysql_fetch_row($result))
 
-		mysqli_free_result( $result );
-
-		if ( ! empty( $query ) ) {
-			$this->insert_query( $query );
+		if ( ! empty( $this->table_query ) ) {
+			if ( $this->table_query_count == 3 ) {
+				$this->insert_query( $this->table_query );
+				$this->table_query_count = 0;
+				$this->table_query = '';
+			} else {
+				$this->table_query_count++;
+			}
 		}
-		
 	}
 
 	/**
@@ -1070,127 +1085,125 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	private function run_replace( $cid, $target_prefix, $replace_array ) {
-		global $report, $count_tables_checked, $count_items_checked, $count_items_changed;
-
-		if (!$cid) { Ninja_Demo()->logs->dlog ("Connecting to DB Error: " . mysqli_error() . "<br/>"); }
+	private function run_replace( $target_prefix, $replace_array ) {
+		global $report, $count_tables_checked, $count_items_checked, $count_items_changed, $wpdb;
 
 		// First, get a list of tables
 		// MUST ESCAPE '_' characters otherwise they will be interpreted as wildcard
 		// single chars in LIKE statement and can really hose up the database
 		$SQL = 'SHOW TABLES LIKE \'' . str_replace('_','\_',$target_prefix) . '%\'';
 
-		$tables_list = mysqli_query( $cid, $SQL );
+		$tables_list = $wpdb->get_results( $SQL, ARRAY_N );
 
-		if (!$tables_list) {
-		Ninja_Demo()->logs->dlog ("ERROR: " . mysqli_error() . "<br/>$SQL<br/>"); }
+		$num_tables = 0;
 
-		// Loop through the tables
+		if ( isset ( $tables_list[0] ) && ! empty ( $tables_list[0] ) ) {
+			foreach ( $tables_list as $table ) {
+				
+				$table = $table[0];
 
-		while ( $table_rows = mysqli_fetch_array( $tables_list ) ) {
+				$count_tables_checked++;
+				Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+				Ninja_Demo()->logs->dlog ( 'Searching table: <b>' . $table . '</b><br />');  // we have tables!
+				Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 
-			$table = $table_rows[0];
+				// ---------------------------------------------------------------------------------------------------------------
 
-			$count_tables_checked++;
-			Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
-			Ninja_Demo()->logs->dlog ( 'Searching table: <b>' . $table . '</b><br />');  // we have tables!
-			Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
+				$SQL = "DESCRIBE ".$table ;    // fetch the table description so we know what to do with it
+				$fields_list = $wpdb->get_results( $SQL, ARRAY_A );
 
-			// ---------------------------------------------------------------------------------------------------------------
+				// Make a simple array of field column names
 
-			$SQL = "DESCRIBE ".$table ;    // fetch the table description so we know what to do with it
-			$fields_list = mysqli_query( $cid, $SQL );
+				/*------------------------------------------------------------------------------------------------------------------
+				*/
+				$index_fields = "";  // reset fields for each table.
+				$column_name = "";
+				$table_index = "";
+				$i = 0;
 
-			// Make a simple array of field column names
-
-			/*------------------------------------------------------------------------------------------------------------------
-			*/
-			$index_fields = "";  // reset fields for each table.
-			$column_name = "";
-			$table_index = "";
-			$i = 0;
-
-			while ( $field_rows = mysqli_fetch_array( $fields_list ) ) {
-				$column_name[$i++] = $field_rows['Field'];
-				if ($field_rows['Key'] == 'PRI') $table_index[] = $field_rows['Field'] ;
-			}
-
-			// skip if no primary key
-			if( empty($table_index) ) continue;
-
-			//    print_r ($column_name);
-			//    print_r ($table_index);
-
-			// now let's get the data and do search and replaces on it...
-
-			$SQL = "SELECT * FROM ".$table;     // fetch the table contents
-			$data = mysqli_query( $cid, $SQL );
-
-			if (!$data) {
-			Ninja_Demo()->logs->dlog ("<br /><b>ERROR:</b> " . mysqli_error() . "<br/>$SQL<br/>"); }
-
-			while ( $row = mysqli_fetch_array( $data ) ) {
-
-				// Initialize the UPDATE string we're going to build, and we don't do an update for each column...
-
-				$need_to_update = false;
-				$UPDATE_SQL = 'UPDATE '.$table. ' SET ';
-				$WHERE_SQL = ' WHERE ';
-				foreach($table_index as $index){
-					$WHERE_SQL .= "$index = '$row[$index]' AND ";
+				foreach ( $fields_list as $field_rows ) {
+					$column_name[ $i++ ] = $field_rows['Field'];
+					if ( $field_rows['Key'] == 'PRI')
+						$table_index[] = $field_rows['Field'] ;
 				}
 
-				$j = 0;
+				// skip if no primary key
+				if( empty( $table_index) ) continue;
 
-				foreach ($column_name as $current_column) {
+				//    print_r ($column_name);
+				//    print_r ($table_index);
 
-					// Thank you to hansbr for improved replacement logic
-					$data_to_fix = $edited_data = $row[$current_column]; // set the same now - if they're different later we know we need to updated
-					$j++; // keep track of index of current column
+				// now let's get the data and do search and replaces on it...
 
-					// -- PROCESS THE SEARCH ARRAY --
-					foreach( $replace_array as $search_for => $replace_with) {
-						$count_items_checked++;
-						//            echo "<br/>Current Column = $current_column";
-						//            if ($current_column == $index_field) $index_value = $row[$current_column];    // if it's the index column, store it for use in the update
-						if (is_serialized($data_to_fix)) {
-							//                echo "<br/>unserialize OK - now searching and replacing the following array:<br/>";
-							//                echo "<br/>$data_to_fix";
-							$unserialized = unserialize($edited_data);
-							//                print_r($unserialized);
-							$this->recursive_array_replace($search_for, $replace_with, $unserialized);
-							$edited_data = serialize($unserialized);
-							//                echo "**Output of search and replace: <br/>";
-							//                echo "$edited_data <br/>";
-							//                print_r($unserialized);
-							//                echo "---------------------------------<br/>";
-						}
-						elseif (is_string($data_to_fix)){
-							$edited_data = str_replace($search_for,$replace_with,$edited_data) ;
-						}
+				$SQL = "SELECT * FROM ".$table;     // fetch the table contents
+				$data = $wpdb->get_results( $SQL, ARRAY_A );
+
+				if ( ! isset ( $data[0] ) || empty ( $data[0] ) ) {
+					Ninja_Demo()->logs->dlog ("<br /><b>ERROR:</b> " . $wpdb->last_error . "<br/>$SQL<br/>"); }
+
+				foreach ( $data as $row ) {
+
+					// Initialize the UPDATE string we're going to build, and we don't do an update for each column...
+
+					$need_to_update = false;
+					$UPDATE_SQL = 'UPDATE '.$table. ' SET ';
+					$WHERE_SQL = ' WHERE ';
+					foreach($table_index as $index){
+						$WHERE_SQL .= "$index = '$row[$index]' AND ";
 					}
 
-					//-- SEARCH ARRAY COMPLETE ----------------------------------------------------------------------
+					$j = 0;
 
-					if ($data_to_fix != $edited_data) {   // If they're not the same, we need to add them to the update string
-						$count_items_changed++;
-						if ($need_to_update != false) $UPDATE_SQL = $UPDATE_SQL.',';  // if this isn't our first time here, add a comma
-						$UPDATE_SQL = $UPDATE_SQL.' '.$current_column.' = "' . mysqli_real_escape_string( $cid, $edited_data ). '"';
-						$need_to_update = true; // only set if we need to update - avoids wasted UPDATE statements
+					foreach ($column_name as $current_column) {
+
+						// Thank you to hansbr for improved replacement logic
+						$data_to_fix = $edited_data = $row[$current_column]; // set the same now - if they're different later we know we need to updated
+						$j++; // keep track of index of current column
+
+						// -- PROCESS THE SEARCH ARRAY --
+						foreach( $replace_array as $search_for => $replace_with) {
+							$count_items_checked++;
+							//            echo "<br/>Current Column = $current_column";
+							//            if ($current_column == $index_field) $index_value = $row[$current_column];    // if it's the index column, store it for use in the update
+							if (is_serialized($data_to_fix)) {
+								//                echo "<br/>unserialize OK - now searching and replacing the following array:<br/>";
+								//                echo "<br/>$data_to_fix";
+								$unserialized = unserialize($edited_data);
+								//                print_r($unserialized);
+								$this->recursive_array_replace($search_for, $replace_with, $unserialized);
+								$edited_data = serialize($unserialized);
+								//                echo "**Output of search and replace: <br/>";
+								//                echo "$edited_data <br/>";
+								//                print_r($unserialized);
+								//                echo "---------------------------------<br/>";
+							}
+							elseif (is_string($data_to_fix)){
+								$edited_data = str_replace($search_for,$replace_with,$edited_data) ;
+							}
+						}
+
+						//-- SEARCH ARRAY COMPLETE ----------------------------------------------------------------------
+
+						if ($data_to_fix != $edited_data) {   // If they're not the same, we need to add them to the update string
+							$count_items_changed++;
+							if ($need_to_update != false) $UPDATE_SQL = $UPDATE_SQL.',';  // if this isn't our first time here, add a comma
+							$UPDATE_SQL = $UPDATE_SQL.' '.$current_column.' = "' . esc_sql( $edited_data ). '"';
+							$need_to_update = true; // only set if we need to update - avoids wasted UPDATE statements
+						}
+
 					}
 
+					if ($need_to_update) {
+						$count_updates_run;
+						$WHERE_SQL = substr($WHERE_SQL,0,-4); // strip off the excess AND - the easiest way to code this without extra flags, etc.
+						$UPDATE_SQL = $UPDATE_SQL.$WHERE_SQL;
+						if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $UPDATE_SQL.'<br/><br/>'); }
+						$result = $wpdb->query( $UPDATE_SQL );
+						if (!$result) Ninja_Demo()->logs->dlog (("<br /><b>ERROR: </b>" . $wpdb->last_error . "<br/>$UPDATE_SQL<br/>"));
+					}
 				}
-
-				if ($need_to_update) {
-					$count_updates_run;
-					$WHERE_SQL = substr($WHERE_SQL,0,-4); // strip off the excess AND - the easiest way to code this without extra flags, etc.
-					$UPDATE_SQL = $UPDATE_SQL.$WHERE_SQL;
-					if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $UPDATE_SQL.'<br/><br/>'); }
-					$result = mysqli_query( $cid,$UPDATE_SQL );
-					if (!$result) Ninja_Demo()->logs->dlog (("<br /><b>ERROR: </b>" . mysqli_error() . "<br/>$UPDATE_SQL<br/>"));
-				}
+				/*---------------------------------------------------------------------------------------------------------*/
 			}
-			/*---------------------------------------------------------------------------------------------------------*/
 		}
 	}
 
