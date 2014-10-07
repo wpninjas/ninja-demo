@@ -523,16 +523,18 @@ class Ninja_Demo_Sandbox {
 	     * Creating our user for this sandbox.
 	     */
 
+		$login_role = isset ( $nd_settings['login_role'] ) ? $nd_settings['login_role'] : 'administrator';
+
 	    // Get our username.
-	    $user_name = $nd_settings['login_role'] . '-' . $target_site_name;
+	    $user_name = $login_role . '-' . $target_site_name;
 	    // Get our user email address.
-	    $user_email = $nd_settings['login_role'] . '@' . $target_site_name .'.com';
+	    $user_email = $login_role . '@' . $target_site_name .'.com';
 	    // Generate a random password.
 	    $random_password = wp_generate_password( $length = 12, $include_standard_special_chars = false );
 		// Create our user.
 		$user_id = wp_create_user( $user_name, $random_password, $user_email );
 
-		if ( $nd_settings['login_role'] == 'administrator' ) {
+		if ( $login_role == 'administrator' ) {
 			$owner_user_id = $user_id;
 		} else {
 			// Get our username.
@@ -685,7 +687,7 @@ class Ninja_Demo_Sandbox {
 	    update_blog_option( $this->target_id, 'nd_source_id', $source_id );
 	
 		// Login our user.
-		add_user_to_blog( $this->target_id, $user_id, $nd_settings['login_role'] );
+		add_user_to_blog( $this->target_id, $user_id, $login_role );
 		remove_user_from_blog( $user_id, $source_id );
 		wp_clear_auth_cookie();
 	    wp_set_auth_cookie( $user_id, true );
