@@ -1010,6 +1010,7 @@ class Ninja_Demo_Sandbox {
 		$current_row	= 0;
 
 		foreach( $result as $row ) {
+
 			$current_row++;
 			// Tracks the _transient_feed_ and _transient_rss_ garbage for exclusion
 			$is_trans = false;
@@ -1042,20 +1043,28 @@ class Ninja_Demo_Sandbox {
 
 			// Execute current insert row statement
 			$this->table_query .= $entries . implode(', ', $values) . ');';
+					
 			//$wpdb->query( $query );
 			if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $query . '<br />'); }
 			unset($values);
+
+			if ( ! empty( $this->table_query ) ) {
+				if ( $this->table_query_count == 3 ) {
+					$this->insert_query( $this->table_query );
+					$this->table_query_count = 0;
+					$this->table_query = '';
+				} else {
+					$this->table_query_count++;
+				}
+			}
 		} // while ($row = mysql_fetch_row($result))
 
 		if ( ! empty( $this->table_query ) ) {
-			if ( $this->table_query_count == 3 ) {
-				$this->insert_query( $this->table_query );
-				$this->table_query_count = 0;
-				$this->table_query = '';
-			} else {
-				$this->table_query_count++;
-			}
+			$this->insert_query( $this->table_query );
+			$this->table_query_count = 0;
+			$this->table_query = '';
 		}
+
 	}
 
 	/**
@@ -1066,7 +1075,7 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	private function insert_query( $query ) {
-		
+
 		if ( $this->db_port != '' ) {
 			$insert = mysqli_connect( $this->db_host, $this->db_user, $this->db_pass, $this->db_name, $this->db_port );
 		} else {
