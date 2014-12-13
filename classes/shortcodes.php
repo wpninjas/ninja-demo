@@ -24,7 +24,10 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function __construct() {
 		add_shortcode( 'try_demo', array( $this, 'try_button' ) );
+		add_shortcode( 'demo_login', array( $this, 'login_button' ) );
 		add_action( 'init', array( $this, 'create_listen' ) );
+		add_action( 'init', array( $this, 'logout_listen' ) );
+		add_action( 'init', array( $this, 'login_listen' ) );
 
 		add_shortcode( 'is_sandbox', array( $this, 'is_sandbox' ) );
 		add_shortcode( 'is_not_sandbox', array( $this, 'is_not_sandbox' ) );
@@ -40,8 +43,6 @@ class Ninja_Demo_Shortcodes {
 	 * @return string $output
 	 */
 	public function try_button( $atts ) {
-
-		
 
 		if ( isset ( $atts['source_id'] ) ) {
 			$source_id = $atts['source_id'];
@@ -114,7 +115,7 @@ class Ninja_Demo_Shortcodes {
 						<div class="ninja-demo-hidden">
 							<label>
 								<?php
-								_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-forms' );
+								_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-demo' );
 								?>
 							</label>
 							<input name="spamcheck" type="text" value="">
@@ -150,7 +151,39 @@ class Ninja_Demo_Shortcodes {
 			<?php
 		
 			$output = ob_get_clean();
+		} else { // If we are in a sandbox, show either a logout or login button.
+			if ( is_user_logged_in() ) {
+				// Show logout button.
+				$logout_url = add_query_arg( array( 'nd_logout' => 1 ) );
+				$output = '<a href="' . $logout_url	. '">' . __( 'Logout', 'ninja-demo' ) . '</a>';
+			} else {
+				// Show login button.
+				$login_url = add_query_arg( array( 'nd_login' => 1 ) );
+				$output = '<a href="' . $login_url . '">' . __( 'Login', 'ninja-demo' ) . '</a>';
+			}
+
 		} // End is_sandbox check
+
+		return $output;
+	}
+
+	/**
+	 * Output our login/logut button
+	 * 
+	 * @access public
+	 * @since 1.0.9
+	 * @return void
+	 */
+	public function login_button( $atts ) {
+		if ( is_user_logged_in() ) {
+			// Show logout button.
+			$logout_url = add_query_arg( array( 'nd_logout' => 1 ) );
+			$output = '<a href="' . $logout_url	. '">' . __( 'Logout', 'ninja-demo' ) . '</a>';
+		} else {
+			// Show login button.
+			$login_url = add_query_arg( array( 'nd_login' => 1 ) );
+			$output = '<a href="' . $login_url . '">' . __( 'Login', 'ninja-demo' ) . '</a>';
+		}
 
 		return $output;
 	}
@@ -216,6 +249,52 @@ class Ninja_Demo_Shortcodes {
 		delete_transient( $_POST['tid'] );
 
 		Ninja_Demo()->sandbox->create( $_POST['source_id'] );
+	}
+
+	/**
+	 * Listen for our logout click
+	 * 
+	 * @access public
+	 * @since 1.1.0
+	 * @return void
+	 */
+	public function logout_listen() {
+		// Bail if we aren't in a sandbox.
+		if ( ! Ninja_Demo()->is_sandbox() )
+			return false;
+		// Bail if we our nd_logout querystring isn't set.
+		if ( ! isset ( $_GET['nd_logout'] ) || $_GET['nd_logout'] != 1 )
+			return false;
+		// Log our user out.
+		wp_logout();
+		// Reload the page.
+		wp_redirect( remove_query_arg( array( 'nd_logout' ) ) );
+		die();
+	}
+
+	/**
+	 * Listen for our login click
+	 * 
+	 * @access public
+	 * @since 1.1.0
+	 * @return void
+	 */
+	public function login_listen() {
+		// Bail if we aren't in a sandbox.
+		if ( ! Ninja_Demo()->is_sandbox() )
+			return false;
+		// Bail if we our nd_logout querystring isn't set.
+		if ( ! isset ( $_GET['nd_login'] ) || $_GET['nd_login'] != 1 )
+			return false;
+
+		// Get our user's credentials
+		$user = get_option( 'nd_user' );
+		$password = get_option( 'nd_password' );
+		// Log our user in.
+		wp_signon( array( 'user_login' => $user, 'user_password' => $password ) );
+		// Reload this page.
+		wp_redirect( remove_query_arg( array( 'nd_login' ) ) );
+		die();
 	}
 
 	/**

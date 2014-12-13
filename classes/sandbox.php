@@ -685,6 +685,10 @@ class Ninja_Demo_Sandbox {
 
 	    // Set an option that marks this sandbox's source id
 	    update_blog_option( $this->target_id, 'nd_source_id', $source_id );
+
+	    // Store our user name and password.
+	    update_blog_option( $this->target_id, 'nd_user', $user_name );
+	    update_blog_option( $this->target_id, 'nd_password', $random_password );
 	
 		// Login our user.
 		add_user_to_blog( $this->target_id, $user_id, $login_role );
@@ -698,6 +702,7 @@ class Ninja_Demo_Sandbox {
 	    
 	    // Get a list of our active plugins.
 	    $plugins = get_option( 'active_plugins' );
+
 	    if ( ! empty( $plugins ) ) {
 		    foreach( $plugins as $plugin ) {
 			    if ( apply_filters( 'nd_activate_plugin', false, $plugin ) ) {
@@ -858,9 +863,10 @@ class Ninja_Demo_Sandbox {
 		if ( isset ( $tables_list[0] ) && ! empty ( $tables_list[0] ) ) {
 			foreach ( $tables_list as $tables ) {
 				$source_table = $tables[0];
+
 				// Check to see if this table belongs to another clone.
 				foreach ( $sandboxes as $s ) {
-					if ( strpos( $source_table, $wpdb->base_prefix . $s['blog_id'] ) !== false ) {
+					if ( Ninja_Demo()->is_sandbox( $s['blog_id'] ) && strpos( $source_table, $wpdb->base_prefix . $s['blog_id'] ) !== false ) {
 						continue 2;
 					}
 				}
