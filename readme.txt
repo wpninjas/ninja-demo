@@ -4,7 +4,7 @@ Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
 Tested up to: 4.0.1
-Stable tag: 1.0.10
+Stable tag: 1.0.11
 
 License: GPLv2 or later
 
@@ -17,24 +17,19 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
-= 1.0.10 (12 December 2014) =
+= 1.0.11 (12 December 2014) =
 
 *Bugs:*
 
 * Fixed a bug with creating sandboxes in environments with multiple source ids.
 
-= 1.0.9 (07 October 2014) =
+== Changelog ==
 
-*Changes:*
-
-* Users are now created dynamically per-sandbox. You can select the role that is created from the Ninja Demo menu.
+= 1.0.11 (12 December 2014) =
 
 *Bugs:*
 
-* Sandboxes should now be created more quickly.
-* Fixed a bug with Ninja Demo CSS that added an unnecessary top margin.
-
-== Changelog ==
+* Fixed a bug with creating sandboxes in environments with multiple source ids.
 
 = 1.0.9 (07 October 2014) =
 
