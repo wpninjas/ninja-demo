@@ -29,9 +29,6 @@ class Ninja_Demo_Sandbox {
 	var $db_user = DB_USER;
 	var $db_pass = DB_PASSWORD;
 
-	var $table_query_count = 0;
-	var $table_query = '';
-
 	/**
 	 * @var Class Globals
 	 */
@@ -82,7 +79,7 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	public function prevent_clone_check() {
-		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && ! NInja_Demo()->is_sandbox() )
+		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && ! Ninja_Demo()->is_sandbox() )
 			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
 	}
 
@@ -190,13 +187,14 @@ class Ninja_Demo_Sandbox {
 	 * @since 1.0
 	 * @return void
 	 */
-	public function delete( $blog_id, $drop = true ) {
+	public function delete( $blog_id, $drop = true, $reset = false ) {
 		global $wpdb;
 
 		require_once ( ABSPATH . 'wp-admin/includes/ms.php' );
 
 		// Make sure that our blog_id is an integer.
 		$blog_id = intval( $blog_id );
+
 		// Make sure that we're on a sandbox
 		if ( get_blog_option( $blog_id, 'nd_sandbox' ) != 1 )
 			return false;
@@ -319,7 +317,7 @@ class Ninja_Demo_Sandbox {
     	}
 
 		// Logout our current user
-		if ( ! Ninja_Demo()->is_admin_user() )
+		if ( ! $reset && ! Ninja_Demo()->is_admin_user() )
 			wp_logout();
 
 		if ( $switch )
@@ -483,7 +481,7 @@ class Ninja_Demo_Sandbox {
 		// Get our source id
 		$source_id = get_option( 'nd_source_id' );
 		// Delete our current sandbox
-		$this->delete( get_current_blog_id() );
+		$this->delete( get_current_blog_id(), true, true );
 		// Switch to our source blog
 		switch_to_blog( $source_id );
 		// Create a new sandbox
@@ -954,6 +952,8 @@ class Ninja_Demo_Sandbox {
 	private function clone_table( $source_table, $target_table ) {
 		global $wpdb;
 
+		$query_count = Ninja_Demo()->settings['query_count'];
+
 		$sql_statements = '';
 
 		$query = "DROP TABLE IF EXISTS " . $this->backquote( $target_table );
@@ -1013,11 +1013,12 @@ class Ninja_Demo_Sandbox {
 		$entries = 'INSERT INTO ' . $this->backquote($target_table) . ' VALUES (';
 		$search	= array("\x00", "\x0a", "\x0d", "\x1a"); 	//\x08\\x09, not required
 		$replace	= array('\0', '\n', '\r', '\Z');
-		$current_row	= 0;
+
+		$table_query = '';
+		$table_query_count = 0;
 
 		foreach( $result as $row ) {
 
-			$current_row++;
 			// Tracks the _transient_feed_ and _transient_rss_ garbage for exclusion
 			$is_trans = false;
 			for ($j = 0; $j < $fields_cnt; $j++) {
@@ -1048,27 +1049,22 @@ class Ninja_Demo_Sandbox {
 			} // for ($j = 0; $j < $fields_cnt; $j++)
 
 			// Execute current insert row statement
-			$this->table_query .= $entries . implode(', ', $values) . ');';
-					
-			//$wpdb->query( $query );
-			if (isset($_POST['is_debug'])) { Ninja_Demo()->logs->dlog ( $query . '<br />'); }
-			unset($values);
+			$current_query = $entries . implode(', ', $values) . ');';
+			$table_query .= $current_query;
+			$table_query_count++;
 
-			if ( ! empty( $this->table_query ) ) {
-				if ( $this->table_query_count == 3 ) {
-					$this->insert_query( $this->table_query );
-					$this->table_query_count = 0;
-					$this->table_query = '';
-				} else {
-					$this->table_query_count++;
-				}
+			unset( $values );
+
+			if ( $table_query_count >= $query_count ) {
+				$this->insert_query( $table_query );
+				$table_query_count = 0;
+				$table_query = '';
 			}
+			
 		} // while ($row = mysql_fetch_row($result))
 
-		if ( ! empty( $this->table_query ) ) {
-			$this->insert_query( $this->table_query );
-			$this->table_query_count = 0;
-			$this->table_query = '';
+		if ( ! empty( $table_query ) ) {
+			$this->insert_query( $table_query );
 		}
 
 	}
@@ -1281,7 +1277,7 @@ class Ninja_Demo_Sandbox {
 		            require_once ( ABSPATH . '/wp-admin/includes/file.php' );
 		            WP_Filesystem();
 		        }
-		        mkdir($dst, FS_CHMOD_DIR, true);
+		        mkdir($dst, 0777, true);
 		    }
 			$files = scandir( $src );
 			foreach ( $files as $file )

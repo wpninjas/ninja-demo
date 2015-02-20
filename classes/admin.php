@@ -261,6 +261,16 @@ class Ninja_Demo_Admin {
 												<label><input type="checkbox" name="log" value="1" <?php checked( 1, Ninja_Demo()->settings['log'] ); ?>> <?php _e( 'Create a log file every time a sandbox is created. (Useful for debugging, but can generate lots of files.)', 'ninja-demo' ); ?></label>
 											</fieldset>
 										</td>
+									</tr>									
+									<tr>
+										<th scope="row">
+											<?php _e( 'Table Rows Inserted At Once', 'ninja-demo' ); ?>
+										</th>
+										<td>
+											<fieldset>
+												<label><input type="number" name="query_count" value="<?php echo Ninja_Demo()->settings['query_count']; ?>"></label> <span class="howto"><?php _e( 'Ninja Demo will attempt to insert this many database rows at once when cloning a source. Higher numbers will result in faster sandbox creation, but lower numbers are less prone to failure. 4 is a good starting point.', 'ninja-demo' ); ?></span>
+											</fieldset>
+										</td>
 									</tr>
 								</tbody>
 								</table>
@@ -494,6 +504,7 @@ class Ninja_Demo_Admin {
 						Ninja_Demo()->settings['prevent_clones'] = $_POST['prevent_clones'];
 						Ninja_Demo()->settings['log'] = $_POST['log'];
 						Ninja_Demo()->settings['login_role'] = $_POST['login_role'];
+						Ninja_Demo()->settings['query_count'] = $_POST['query_count'];
 						
 					} else if ( $current_tab == 'theme' ) {
 						Ninja_Demo()->settings['show_toolbar'] = $_POST['show_toolbar'];
