@@ -17,19 +17,19 @@ To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
 
-= 1.0.12 (24 February 2014) =
+= 1.0.13 (24 February 2014) =
 
 *Bugs:*
 
 * Whitelisting the customizer should now work properly for demo sandboxes.
 
-= 1.0.11 (12 December 2014) =
+== Changelog ==
+
+= 1.0.13 (24 February 2014) =
 
 *Bugs:*
 
-* Fixed a bug with creating sandboxes in environments with multiple source ids.
-
-== Changelog ==
+* Whitelisting the customizer should now work properly for demo sandboxes.
 
 = 1.0.11 (12 December 2014) =
 
