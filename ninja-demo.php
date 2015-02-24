@@ -43,7 +43,7 @@ class Ninja_Demo {
 	 * @var Class Globals
 	 */
 	var $settings;
-	var $version = '1.0.11';
+	var $version = '1.0.12';
 	var $cached_source_id = '';
 
 	/**
