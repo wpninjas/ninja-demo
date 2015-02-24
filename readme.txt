@@ -3,8 +3,8 @@ Contributors: kstover, jameslaws
 Donate link: http://ninjademo.com
 Tags: demo, demonstration
 Requires at least: 3.7
-Tested up to: 4.0.1
-Stable tag: 1.0.11
+Tested up to: 4.1.1
+Stable tag: 1.0.12
 
 License: GPLv2 or later
 
@@ -16,6 +16,12 @@ Ninja Demo is a plugin designed to make it easy to create WordPress product demo
 To see up to date screenshots, visit [ninjademo.com](http://ninjademo.com).
 
 == Upgrade Notice ==
+
+= 1.0.12 (24 February 2014) =
+
+*Bugs:*
+
+* Whitelisting the customizer should now work properly for demo sandboxes.
 
 = 1.0.11 (12 December 2014) =
 

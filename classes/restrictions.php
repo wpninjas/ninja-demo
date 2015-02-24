@@ -96,7 +96,7 @@ class Ninja_Demo_Restrictions {
 
 			$allowed_menu_links = apply_filters( 'nd_show_menu_pages', Ninja_Demo()->settings['parent_pages'] );
 			$allowed_submenu_links = apply_filters( 'nd_show_submenu_pages', Ninja_Demo()->settings['child_pages'] );
-			
+
 			foreach ( $menu as $item ) {
 				$parent_slug = $item[2];
 
@@ -111,6 +111,11 @@ class Ninja_Demo_Restrictions {
 						$child_slug = $sub_item[2];
 						$found = false;
 						foreach ( $allowed_submenu_links as $allowed_submenu ) {
+
+							if ( $allowed_submenu['parent'] == 'themes.php' && strpos( $allowed_submenu['child'], 'customize.php' ) === 0 ) {
+								$found = true;
+							}
+
 							if ( $allowed_submenu['parent'] == $parent_slug && $allowed_submenu['child'] == $child_slug ) {
 								if ( strpos( $allowed_submenu['child'], 'post_type=' ) !== false ) {
 									// Get our post type from our string.
@@ -200,7 +205,7 @@ class Ninja_Demo_Restrictions {
 					return false;
 				}
 			}
- 			
+
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 
 				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
@@ -227,7 +232,16 @@ class Ninja_Demo_Restrictions {
 					$found = false;					
 				}
 
+				if ( 'customize' == $screen->id ) {
+					foreach ( $allowed_submenu_links as $link ) {
+						if ( $link['parent'] == 'themes.php' && strpos( $link['child'], 'customize.php' ) === 0 ) {
+							$found = true;
+						}
+					}
+				}
+
 				foreach ( $allowed_pages as $page ) {
+					$page = urlencode( $page );
 					if ( preg_match( "/". $page . "$/", $screen->id ) !== 0 ) {
 						$found = true;
 						break;
@@ -237,7 +251,6 @@ class Ninja_Demo_Restrictions {
 				if ( ! $found )
 	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 			} else {
-
 	  			if ( ! in_array( $page_now, $allowed_pages ) && $page_now != 'wp-admin' )
 	  				wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );		
 			}

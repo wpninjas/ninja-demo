@@ -43,7 +43,7 @@ class Ninja_Demo {
 	 * @var Class Globals
 	 */
 	var $settings;
-	var $version = '1.0.11';
+	var $version = '1.0.12';
 	var $cached_source_id = '';
 
 	/**
@@ -224,6 +224,7 @@ class Ninja_Demo {
 		$settings['auto_login'] = isset ( $settings['auto_login'] ) ? $settings['auto_login'] : '';
 		$settings['login_role'] = isset ( $settings['login_role'] ) ? $settings['login_role'] : '';
 		$settings['theme_site'] = isset ( $settings['theme_site'] ) ? $settings['theme_site'] : '';
+		$settings['query_count'] = isset ( $settings['query_count'] ) ? $settings['query_count'] : 4;
 		
 		// Check to see if we've upgraded from a version before plugin_settings was introduced.
 		if ( isset ( $settings['admin_id'] ) ) {
