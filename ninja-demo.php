@@ -87,6 +87,7 @@ class Ninja_Demo {
 		self::$instance->logs = new Ninja_Demo_Logs();
 		self::$instance->shortcodes = new Ninja_Demo_Shortcodes();
 		self::$instance->ip = new Ninja_Demo_IP_Lockout();
+		self::$instance->provision = new Ninja_Demo_Provision();
 
 		// Get our license updating stuff going.
 		$license = Ninja_Demo()->plugin_settings['license'];
@@ -258,6 +259,8 @@ class Ninja_Demo {
 	    $plugin_settings['license'] = isset ( $plugin_settings['license'] ) ? $plugin_settings['license'] : '';
 		$plugin_settings['license_status'] = isset ( $plugin_settings['license_status'] ) ? $plugin_settings['license_status'] : '';
 		$plugin_settings['theme_sites'] = isset ( $plugin_settings['theme_sites'] ) ? $plugin_settings['theme_sites'] : array();
+		$plugin_settings['sources'] = isset ( $plugin_settings['sources'] ) ? $plugin_settings['sources'] : array();
+		$plugin_settings['provisioned'] = isset ( $plugin_settings['provisioned'] ) ? $plugin_settings['provisioned'] : array();
 
 	    self::$instance->plugin_settings = $plugin_settings;
 	}
@@ -272,6 +275,7 @@ class Ninja_Demo {
 	private function includes() {
 		require_once( ND_PLUGIN_DIR . 'classes/admin.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/sandbox.php' );
+		require_once( ND_PLUGIN_DIR . 'classes/provision.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/restrictions.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/logs.php' );
 		require_once( ND_PLUGIN_DIR . 'classes/shortcodes.php' );

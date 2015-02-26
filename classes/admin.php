@@ -395,11 +395,13 @@ class Ninja_Demo_Admin {
 									</th>
 									<td>
 										<fieldset>
+											<input type="hidden" name="sources" value="">
 											<?php
 											$sites = wp_get_sites();
 											foreach ( $sites as $site ) {
 												if ( ! Ninja_Demo()->is_sandbox( $site['blog_id'] ) ) {
 													echo "<pre>";
+													echo '<input name="sources[]" value="' . $site['blog_id'] . '" type="checkbox" ' . checked( in_array( $site['blog_id'], Ninja_Demo()->plugin_settings['sources'] ), true, false ) . '>';
 													echo $site['path'];
 													echo ": ";
 													echo Ninja_Demo()->sandbox->count( $site['blog_id'] );
@@ -541,6 +543,16 @@ class Ninja_Demo_Admin {
 						$this->activate_license( $_POST['license'] );
 					}
 					Ninja_Demo()->plugin_settings['license'] = $_POST['license'];
+					Ninja_Demo()->plugin_settings['sources'] = $_POST['sources'];
+					// Check to see if we have any sandboxes provisioned for the sources checked
+					if ( ! empty ( $_POST['sources'] ) && is_array ( $_POST['sources'] ) ) {
+						foreach ( $_POST['sources'] as $source_id ) {
+							var_dump( Ninja_Demo()->provision->get_count( $source_id ) );
+						}
+					}
+
+
+
 				} else if ( isset ( $_POST['delete_all_sandboxes'] ) ) {
 					Ninja_Demo()->sandbox->delete_all();
 				} else if ( isset ( $_POST['deactivate_license'] ) ) {
