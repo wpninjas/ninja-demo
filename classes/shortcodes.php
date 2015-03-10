@@ -14,6 +14,11 @@
  */
 
 class Ninja_Demo_Shortcodes {
+	
+	/*
+	 * Check for errors during sandbox creation
+	 */
+	private $error = false; // Check for errors in sandbox creation
 
 	/**
 	 * Get things started
@@ -91,7 +96,13 @@ class Ninja_Demo_Shortcodes {
 						<div>
 							<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
 							<?php
-							if ( isset ( $_POST['spam_a'] ) && $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
+							if ( 'expired' == $this->error ) {
+							?>
+								<div>
+									<?php _e( 'Your demo has expired. Please try again', 'ninja-demo' ); ?>
+								</div>
+							<?php
+							} else if ( 'failed' == $this->error ) {
 							?>
 								<div>
 									<?php _e( 'Incorrect answer. Please try again.', 'ninja-demo' ); ?>
@@ -225,6 +236,12 @@ class Ninja_Demo_Shortcodes {
 		// Bail if we haven't sent an answer to the anti-spam question
 		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) )
 			return false;
+		
+		// Bail if we haven't sent an answer to the anti-spam question
+		if ( false === get_transient( $_POST['tid'] ) ) {
+			$this->error = 'expired';
+			return false;
+		}
 
 		// Bail if our anti-spam answer isn't correct
 		if ( $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
@@ -242,7 +259,8 @@ class Ninja_Demo_Shortcodes {
 			}
 			// Remove our transient answer
 			delete_transient( $_POST['tid'] );
-
+			
+			$this->error = 'failed';
 			return false;
 		}
 		// Remove our transient answer
@@ -347,7 +365,7 @@ class Ninja_Demo_Shortcodes {
 		if ( get_transient( $key ) !== false ) {
 			return $this->set_transient( $value );
 		} else {
-			set_transient( $key, $value, 300 );
+			set_transient( $key, $value, 900 ); //15 minutes
 		}
 		return $key;
 	}
