@@ -217,6 +217,8 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function create_listen() {
 
+		do_action( 'nd_create_listen' );
+
 		// Add any errors which have been passed back to us from the redirect
 		if ( isset ( $_GET['errormsg'] ) )
 			$this->add_error( ( isset( $_GET['errormsg'] ) ? $_GET['errorcode'] : 'error' ) , $_GET['errormsg'] );

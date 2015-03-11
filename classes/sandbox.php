@@ -547,7 +547,7 @@ class Ninja_Demo_Sandbox {
 					wp_get_referer()
 				)
 			);
-			return;
+			die;
 		}
 
 		if ( $login_role == 'administrator' ) {
