@@ -249,13 +249,13 @@ class Ninja_Demo_Shortcodes {
 
 		// Bail if we haven't sent an answer to the anti-spam question
 		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) ) {
-			$this->add_error( 'no-spam-entry', __( 'Your demo has expired. Please try again', 'ninja-demo' ) );
+			$this->add_error( 'no-spam-entry', __( 'We are missing a humanity check entry.', 'ninja-demo' ) );
 			return false;
 		}
 
 		// Bail if we haven't sent an answer to the anti-spam question
 		if ( false === get_transient( $_POST['tid'] ) ) {
-			$this->add_error( 'expired', __( 'Your demo has expired. Please try again', 'ninja-demo' ) );
+			$this->add_error( 'expired', __( 'Your humanity check has expired. Please try again.', 'ninja-demo' ) );
 			return false;
 		}
 
