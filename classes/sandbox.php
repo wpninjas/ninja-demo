@@ -535,6 +535,7 @@ class Ninja_Demo_Sandbox {
 		// Create our user.
 		$user_id = wp_create_user( $user_name, $random_password, $user_email );
 
+		// Do not allow duplicate users, this may be the case if we have added a filter on the username or email
 		if( is_wp_error( $user_id ) ){
 			wp_redirect(
 				add_query_arg(
