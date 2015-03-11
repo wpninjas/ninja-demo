@@ -14,11 +14,11 @@
  */
 
 class Ninja_Demo_Shortcodes {
-	
+
 	/*
 	 * Check for errors during sandbox creation
 	 */
-	private $error = false; // Check for errors in sandbox creation
+	private $errors = false; // Check for errors in sandbox creation
 
 	/**
 	 * Get things started
@@ -58,15 +58,11 @@ class Ninja_Demo_Shortcodes {
 		$spam_q = $this->get_spam_question();
 		$spam_a = $this->get_spam_answer( $spam_q );
 		$tid = $this->set_transient( $spam_a );
+
 		// Check to see if our IP address is locked out.
 		$ip = $_SERVER['REMOTE_ADDR'];
 
 		Ninja_Demo()->ip->free_ip( $ip );
-
-		// Get the number of tries we have left before we are locked out.
-		if ( isset ( $_SESSION['ninja_demo_failed'] ) ) {
-			$tries = 4 - $_SESSION['ninja_demo_failed'];
-		}
 
 		if ( ! Ninja_Demo()->is_sandbox() )
 			$ip_lockout = Ninja_Demo()->ip->check_ip_lockout( $ip );
@@ -82,61 +78,23 @@ class Ninja_Demo_Shortcodes {
 			<div class="nd-start-demo">
 				<?php
 				// Check to
-				if ( ! $ip_lockout ) {
-
-					?>
+				if ( ! $ip_lockout ) { ?>
 					<form action="#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
 						<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
 						<input name="nd_create_sandbox" type="hidden" value="1">
 						<input name="tid" type="hidden" value="<?php echo $tid; ?>">
 						<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
-						<?php
-							if ( isset ( $_GET['errormsg'] ) ) {
-						?>
-							<div>
-								<?php echo $_GET['errormsg'];  ?>
-							</div>
-						<?php
-							}
-						?>
-						<?php
-						do_action( 'nd_before_anti_spam', $source_id );
-						?>
+
+						<?php $this->output_errors(); ?>
+
+						<?php do_action( 'nd_before_anti_spam', $source_id ); ?>
 						<div>
 							<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
-							<?php
-							if ( 'expired' == $this->error ) {
-							?>
-								<div>
-									<?php _e( 'Your demo has expired. Please try again', 'ninja-demo' ); ?>
-								</div>
-							<?php
-							} else if ( 'failed' == $this->error ) {
-							?>
-								<div>
-									<?php _e( 'Incorrect answer. Please try again.', 'ninja-demo' ); ?>
-								</div>
-								<div>
-									<?php
-									if ( $tries == 1 ) {
-										printf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-									} else {
-										printf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-									}
-									?>
-								</div>
-							<?php
-							}
-						?>
 						</div>
-						<?php
-						do_action( 'nd_after_anti_spam', $source_id );
-						?>
+						<?php do_action( 'nd_after_anti_spam', $source_id );?>
 						<div class="ninja-demo-hidden">
 							<label>
-								<?php
-								_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-demo' );
-								?>
+								<?php _e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-demo' ); ?>
 							</label>
 							<input name="spamcheck" type="text" value="">
 						</div>
@@ -188,6 +146,47 @@ class Ninja_Demo_Shortcodes {
 	}
 
 	/**
+	 * Output any errors that have been generated
+	 *
+	 * @access public
+	 * @since 1.1.14
+	 * @return void
+	 */
+	function output_errors(){
+
+		$error_output = '';
+
+		if( FALSE != $this->errors && is_array( $this->errors ) ){
+			foreach ( $this->errors as $error ) {
+				$error_output .= '<div class="nd-error-message nd-'. $error['code'] . '">' . $error['message'] . '</div>';
+			}
+		}
+
+		echo $error_output;
+
+	}
+
+	/**
+	 * Handle errors when things go wrong
+	 *
+	 * @access public
+	 * @since 1.1.14
+	 * @return void
+	 */
+
+	function add_error( $error_code = FALSE, $error_message = FALSE ){
+
+		// Check if there's an actual error being passed
+		if( FALSE == $error_message || FALSE == $error_code) return;
+
+		$this->errors[] = array(
+				'code' => $error_code,
+				'message' => $error_message
+			);
+
+	}
+
+	/**
 	 * Output our login/logut button
 	 *
 	 * @access public
@@ -218,6 +217,10 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function create_listen() {
 
+		// Add any errors which have been passed back to us from the redirect
+		if ( isset ( $_GET['errormsg'] ) )
+			$this->add_error( ( isset( $_GET['errormsg'] ) ? $_GET['errorcode'] : 'error' ) , $_GET['errormsg'] );
+
 		// Bail if the "prevent_clones" has been set to 1
 		if ( Ninja_Demo()->settings['prevent_clones'] == 1 )
 			return false;
@@ -243,12 +246,14 @@ class Ninja_Demo_Shortcodes {
 			return false;
 
 		// Bail if we haven't sent an answer to the anti-spam question
-		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) )
+		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) ) {
+			$this->add_error( 'no-spam-entry', __( 'Your demo has expired. Please try again', 'ninja-demo' ) );
 			return false;
-		
+		}
+
 		// Bail if we haven't sent an answer to the anti-spam question
 		if ( false === get_transient( $_POST['tid'] ) ) {
-			$this->error = 'expired';
+			$this->add_error( 'expired', __( 'Your demo has expired. Please try again', 'ninja-demo' ) );
 			return false;
 		}
 
@@ -266,9 +271,20 @@ class Ninja_Demo_Shortcodes {
 				Ninja_Demo()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'] );
 				$_SESSION['ninja_demo_failed'] = 0;
 			}
+
+			$tries = ( 4 - $_SESSION['ninja_demo_failed'] );
+
+			$this->add_error( 'failed', __( 'Incorrect answer. Please try again.', 'ninja-demo' ) );
+
+			if ( $tries == 1 ) {
+				$this->add_error( 'remaining-attempts', sprintf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries ) );
+			} else {
+				$this->add_error( 'remaining-attempts', sprintf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries ) );
+			}
+
 			// Remove our transient answer
 			delete_transient( $_POST['tid'] );
-			
+
 			$this->error = 'failed';
 			return false;
 		}

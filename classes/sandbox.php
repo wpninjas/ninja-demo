@@ -540,13 +540,14 @@ class Ninja_Demo_Sandbox {
 				add_query_arg(
 					array(
 						'error' => 'true',
+						'errorcode' => urlencode( $user_id->get_error_code() ),
 						'errormsg' => urlencode( $user_id->get_error_message() ),
 						'updated' => false
 					),
 					wp_get_referer()
 				)
 			);
-			die;
+			return;
 		}
 
 		if ( $login_role == 'administrator' ) {
@@ -583,8 +584,9 @@ class Ninja_Demo_Sandbox {
 		if( stripos($target_subd, $source_site) !== false ) {
 				wp_redirect( add_query_arg(
 					array('error' => 'true',
-						  'errormsg' => urlencode( __( "The Source Site Name ($source_site) may not appear in the Target Site Domain ($target_subd) or data corruption will occur. You might need to edit the Source Site's Name in Settings > General, or double-check / change your field input values.", 'ns_cloner' ) ),
-						  'updated' => false),
+						'errorcode' => urlencode( $user_id->get_error_code() ),
+						'errormsg' => urlencode( __( "The Source Site Name ($source_site) may not appear in the Target Site Domain ($target_subd) or data corruption will occur. You might need to edit the Source Site's Name in Settings > General, or double-check / change your field input values.", 'ns_cloner' ) ),
+						'updated' => false),
 					wp_get_referer() ) );
 				die;
 		} else{
