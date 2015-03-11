@@ -390,7 +390,7 @@ class Ninja_Demo_Shortcodes {
 		if ( get_transient( $key ) !== false ) {
 			return $this->set_transient( $value );
 		} else {
-			set_transient( $key, $value, 900 ); //15 minutes
+			set_transient( $key, $value, apply_filters( 'nd_question_timeout', 300 ) );
 		}
 		return $key;
 	}
