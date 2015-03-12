@@ -217,7 +217,10 @@ class Ninja_Demo_Shortcodes {
 	 */
 	public function create_listen() {
 		
-		do_action( 'nd_create_listen' );
+		// Allow Dev's to stop the process if their form handling fails
+		if( apply_filters( 'nd_create_listen', false ) ){
+			return false;
+		}
 
 		// Add any errors which have been passed back to us from the redirect
 		if ( isset ( $_GET['errormsg'] ) ) {
