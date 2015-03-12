@@ -216,9 +216,9 @@ class Ninja_Demo_Shortcodes {
 	 * @return void
 	 */
 	public function create_listen() {
-		
-		// Allow Dev's to stop the process if their form handling fails
-		if( apply_filters( 'nd_create_listen', false ) ){
+
+		// Allow Dev's to stop the process if their form handling fails, default to passing true (valid), fail when false is returned
+		if( false == apply_filters( 'nd_create_listen', true ) ){
 			return false;
 		}
 
