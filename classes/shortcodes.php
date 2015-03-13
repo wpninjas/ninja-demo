@@ -74,12 +74,12 @@ class Ninja_Demo_Shortcodes {
 			ob_start();
 
 			?>
-			<a id="ninjademo"></a>
+			<a id="ninja-demo"></a>
 			<div class="nd-start-demo">
 				<?php
 				// Check to
 				if ( ! $ip_lockout ) { ?>
-					<form action="<?php echo the_permalink(); ?>#ninjademo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
+					<form action="<?php echo the_permalink(); ?>#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
 						<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
 						<input name="nd_create_sandbox" type="hidden" value="1">
 						<input name="tid" type="hidden" value="<?php echo $tid; ?>">
