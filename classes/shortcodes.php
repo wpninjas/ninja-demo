@@ -74,7 +74,7 @@ class Ninja_Demo_Shortcodes {
 			ob_start();
 
 			?>
-			<a id="ninja-demo"></a>
+			<a id="ninjademo"></a>
 			<div class="nd-start-demo">
 				<?php
 				// Check to
