@@ -87,6 +87,9 @@ class Ninja_Demo_Restrictions {
 	public function remove_pages() {
 		global $menu, $pagenow, $submenu;
 
+		if ( empty ( $menu ) )
+			return false;
+
 		if ( ! Ninja_Demo()->is_admin_user() && is_admin() ) {
 			$sub_menu = Ninja_Demo()->html_entity_decode_deep( $submenu );
 			$allowed_pages = apply_filters( 'nd_allowed_pages', array( 'options.php', 'index.php' ) );
