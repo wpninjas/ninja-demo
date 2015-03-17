@@ -15,6 +15,11 @@
 
 class Ninja_Demo_Shortcodes {
 
+	/*
+	 * Check for errors during sandbox creation
+	 */
+	private $errors = false; // Check for errors in sandbox creation
+
 	/**
 	 * Get things started
 	 *
@@ -49,74 +54,47 @@ class Ninja_Demo_Shortcodes {
 		} else {
 			$source_id = get_current_blog_id();
 		}
-		
+
 		$spam_q = $this->get_spam_question();
 		$spam_a = $this->get_spam_answer( $spam_q );
 		$tid = $this->set_transient( $spam_a );
+
 		// Check to see if our IP address is locked out.
 		$ip = $_SERVER['REMOTE_ADDR'];
 
 		Ninja_Demo()->ip->free_ip( $ip );
-		
-		// Get the number of tries we have left before we are locked out.
-		if ( isset ( $_SESSION['ninja_demo_failed'] ) ) {
-			$tries = 4 - $_SESSION['ninja_demo_failed'];
-		}
-		
+
 		if ( ! Ninja_Demo()->is_sandbox() )
 			$ip_lockout = Ninja_Demo()->ip->check_ip_lockout( $ip );
 
 		$output = '';
-		
+
 		if ( ! Ninja_Demo()->is_sandbox() ) {
-			
+
 			ob_start();
-			
+
 			?>
 			<a id="ninja-demo"></a>
 			<div class="nd-start-demo">
 				<?php
 				// Check to
-				if ( ! $ip_lockout ) {
-
-					?>
-					<form action="#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
+				if ( ! $ip_lockout ) { ?>
+					<form action="<?php echo the_permalink(); ?>#ninja-demo" method="post" enctype="multipart/form-data" class="nd-start-demo-form">
 						<?php wp_nonce_field( 'ninja_demo_create_sandbox','ninja_demo_sandbox' ); ?>
 						<input name="nd_create_sandbox" type="hidden" value="1">
 						<input name="tid" type="hidden" value="<?php echo $tid; ?>">
 						<input name="source_id" type="hidden" value="<?php echo $source_id; ?>">
-						<?php
-						do_action( 'nd_before_anti_spam', $source_id );
-						?>
+
+						<?php $this->output_errors(); ?>
+
+						<?php do_action( 'nd_before_anti_spam', $source_id ); ?>
 						<div>
 							<label class="nd-answer-field"><?php echo _e( 'What does ', 'ninja-demo' ) . $spam_q; ?><input type="text" name="spam_a"></label>
-							<?php
-							if ( isset ( $_POST['spam_a'] ) && $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
-							?>
-								<div>
-									<?php _e( 'Incorrect answer. Please try again.', 'ninja-demo' ); ?>
-								</div>
-								<div>
-									<?php
-									if ( $tries == 1 ) {
-										printf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-									} else {
-										printf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries );
-									}
-									?>
-								</div>
-							<?php
-							}
-						?>
 						</div>
-						<?php
-						do_action( 'nd_after_anti_spam', $source_id );
-						?>
+						<?php do_action( 'nd_after_anti_spam', $source_id );?>
 						<div class="ninja-demo-hidden">
 							<label>
-								<?php
-								_e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-demo' );
-								?>
+								<?php _e( 'If you are a human and are seeing this field, please leave it blank.', 'ninja-demo' ); ?>
 							</label>
 							<input name="spamcheck" type="text" value="">
 						</div>
@@ -140,7 +118,7 @@ class Ninja_Demo_Shortcodes {
 						printf( __( 'You are unable to create a sandbox for %d minutes.', 'ninja-demo' ), $expires );
 					}
 
-					
+
 					if ( isset ( $_POST['tid'] ) )
 						delete_transient( $_POST['tid'] );
 					?></h4>
@@ -149,7 +127,7 @@ class Ninja_Demo_Shortcodes {
 				?>
 			</div>
 			<?php
-		
+
 			$output = ob_get_clean();
 		} else { // If we are in a sandbox, show either a logout or login button.
 			if ( is_user_logged_in() ) {
@@ -168,8 +146,49 @@ class Ninja_Demo_Shortcodes {
 	}
 
 	/**
+	 * Output any errors that have been generated
+	 *
+	 * @access public
+	 * @since 1.1.14
+	 * @return void
+	 */
+	function output_errors(){
+
+		$error_output = '';
+
+		if( FALSE != $this->errors && is_array( $this->errors ) ){
+			foreach ( $this->errors as $error ) {
+				$error_output .= '<div class="nd-error-message nd-'. $error['code'] . '">' . $error['message'] . '</div>';
+			}
+		}
+
+		echo $error_output;
+
+	}
+
+	/**
+	 * Handle errors when things go wrong
+	 *
+	 * @access public
+	 * @since 1.1.14
+	 * @return void
+	 */
+
+	function add_error( $error_code = FALSE, $error_message = FALSE ){
+
+		// Check if there's an actual error being passed
+		if( FALSE == $error_message || FALSE == $error_code) return;
+
+		$this->errors[] = array(
+				'code' => $error_code,
+				'message' => $error_message
+			);
+
+	}
+
+	/**
 	 * Output our login/logut button
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0.9
 	 * @return void
@@ -191,12 +210,23 @@ class Ninja_Demo_Shortcodes {
 	/**
 	 * Listen for our create sandbox button.
 	 * If everything passes, call the Ninja_Demo()->sandbox->create() function.
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return void
 	 */
 	public function create_listen() {
+
+		// Allow Dev's to stop the process if their form handling fails, default to passing true (valid), fail when false is returned
+		if( false == apply_filters( 'nd_create_listen', true ) ){
+			return false;
+		}
+
+		// Add any errors which have been passed back to us from the redirect
+		if ( isset ( $_GET['errormsg'] ) ) {
+			$this->add_error( ( isset( $_GET['errormsg'] ) ? $_GET['errorcode'] : 'error' ) , $_GET['errormsg'] );
+			return false;
+		}
 
 		// Bail if the "prevent_clones" has been set to 1
 		if ( Ninja_Demo()->settings['prevent_clones'] == 1 )
@@ -223,8 +253,16 @@ class Ninja_Demo_Shortcodes {
 			return false;
 
 		// Bail if we haven't sent an answer to the anti-spam question
-		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) )
+		if ( ! isset( $_POST['spam_a'] ) || ! isset ( $_POST['tid'] ) ) {
+			$this->add_error( 'no-spam-entry', __( 'We are missing a humanity check entry.', 'ninja-demo' ) );
 			return false;
+		}
+
+		// Bail if we haven't sent an answer to the anti-spam question
+		if ( false === get_transient( $_POST['tid'] ) ) {
+			$this->add_error( 'expired', __( 'Your humanity check has expired. Please try again.', 'ninja-demo' ) );
+			return false;
+		}
 
 		// Bail if our anti-spam answer isn't correct
 		if ( $_POST['spam_a'] != get_transient( $_POST['tid'] ) ) {
@@ -240,9 +278,21 @@ class Ninja_Demo_Shortcodes {
 				Ninja_Demo()->ip->lockout_ip( $_SERVER['REMOTE_ADDR'] );
 				$_SESSION['ninja_demo_failed'] = 0;
 			}
+
+			$tries = ( 4 - $_SESSION['ninja_demo_failed'] );
+
+			$this->add_error( 'failed', __( 'Incorrect answer. Please try again.', 'ninja-demo' ) );
+
+			if ( $tries == 1 ) {
+				$this->add_error( 'remaining-attempts', sprintf( __( 'You have %d attempt left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries ) );
+			} else {
+				$this->add_error( 'remaining-attempts', sprintf( __( 'You have %d attempts left before your IP address is locked out for 20 minutes.', 'ninja-demo' ), $tries ) );
+			}
+
 			// Remove our transient answer
 			delete_transient( $_POST['tid'] );
 
+			$this->error = 'failed';
 			return false;
 		}
 		// Remove our transient answer
@@ -253,7 +303,7 @@ class Ninja_Demo_Shortcodes {
 
 	/**
 	 * Listen for our logout click
-	 * 
+	 *
 	 * @access public
 	 * @since 1.1.0
 	 * @return void
@@ -274,7 +324,7 @@ class Ninja_Demo_Shortcodes {
 
 	/**
 	 * Listen for our login click
-	 * 
+	 *
 	 * @access public
 	 * @since 1.1.0
 	 * @return void
@@ -347,14 +397,14 @@ class Ninja_Demo_Shortcodes {
 		if ( get_transient( $key ) !== false ) {
 			return $this->set_transient( $value );
 		} else {
-			set_transient( $key, $value, 300 );
+			set_transient( $key, $value, apply_filters( 'nd_question_timeout', 300 ) );
 		}
 		return $key;
 	}
 
 	/**
 	 * Output a button for resetting the demo
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return string $output
@@ -368,7 +418,7 @@ class Ninja_Demo_Shortcodes {
 		?>
 		<form action="" method="post" enctype="multipart/form-data" class="nd-reset-demo-form">
 			<input type="hidden" name="reset_sandbox" value="1">
-			<?php wp_nonce_field( 'ninja_demo_reset_sandbox','ninja_demo_sandbox' ); ?> 
+			<?php wp_nonce_field( 'ninja_demo_reset_sandbox','ninja_demo_sandbox' ); ?>
 			<input type="submit" name="reset_sandbox_submit" value="<?php _e( 'Reset Sandbox Content', 'ninja-demo' ); ?>">
 		</form>
 		<?php
@@ -378,7 +428,7 @@ class Ninja_Demo_Shortcodes {
 
 	/**
 	 * is_sandbox shortcode
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return string $content or bool(false)
@@ -393,7 +443,7 @@ class Ninja_Demo_Shortcodes {
 
 	/**
 	 * is_not_sandbox shortcode
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return string $content or bool(false)
@@ -408,7 +458,7 @@ class Ninja_Demo_Shortcodes {
 
 	/**
 	 * is_sandbox_expired shortcode
-	 * 
+	 *
 	 * @access public
 	 * @since 1.0
 	 * @return string $content or bool(false)
