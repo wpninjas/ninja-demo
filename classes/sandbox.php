@@ -79,7 +79,8 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	public function prevent_clone_check() {
-		if ( ! Ninja_Demo()->is_admin_user() && Ninja_Demo()->settings['prevent_clones'] == 1 && ! Ninja_Demo()->is_sandbox() )
+		$current_url = add_query_arg( array() );
+		if ( Ninja_Demo()->settings['offline'] == 1 && ! Ninja_Demo()->is_admin_user() && ( ( ! Ninja_Demo()->is_sandbox() && strpos ( $current_url, '/wp-admin/' ) === false && strpos ( $current_url, 'wp-login.php' ) === false ) || Ninja_Demo()->is_sandbox() ) )
 			wp_die( __( apply_filters( 'nd_offline_msg', 'The demo is currently offline.' ), 'ninja-demo' ) );
 	}
 
