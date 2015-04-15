@@ -112,9 +112,14 @@ class Ninja_Demo_Restrictions {
 						$found = false;
 						foreach ( $allowed_submenu_links as $allowed_submenu ) {
 
-							if ( $allowed_submenu['parent'] == 'themes.php' && strpos( $allowed_submenu['child'], 'customize.php' ) === 0 ) {
-								$found = true;
-							}
+
+							// if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'customize.php' ) === 0 ) {
+							// 	$found = true;
+							// }
+
+							// if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'nav-menus.php' ) === 0 ) {
+							// 	$found = true;
+							// }
 
 							if ( $allowed_submenu['parent'] == $parent_slug && $allowed_submenu['child'] == $child_slug ) {
 								if ( strpos( $allowed_submenu['child'], 'post_type=' ) !== false ) {
@@ -170,6 +175,11 @@ class Ninja_Demo_Restrictions {
 							$allowed_pages[] = $child_slug;							
 						} else {
 							remove_submenu_page( htmlentities( $parent_slug ), htmlentities( $child_slug ) );
+							foreach ( $submenu[ $parent_slug ] as $priority => $sub ) {
+								if ( $sub[2] == $child_slug ) {
+									unset( $submenu[ $parent_slug ][ $priority ] );
+								}
+							}
 						}				
 					}
 				}
@@ -205,11 +215,26 @@ class Ninja_Demo_Restrictions {
 					return false;
 				}
 			}
-
+			
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
-
+				
 				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
 					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
+				}
+
+				if ( isset ( $_REQUEST['page'] ) ) {
+					$screen = get_current_screen();
+					$found = false;
+
+					foreach ( $allowed_submenu_links as $allowed_submenu ) {
+						if ( $_REQUEST['page'] == $allowed_submenu['child'] ) {
+							$found = true;
+							break;
+						}
+					}
+
+					if ( ! $found )
+	  					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
 			} else if ( $pagenow == 'post-new.php' ) {
@@ -235,6 +260,12 @@ class Ninja_Demo_Restrictions {
 				if ( 'customize' == $screen->id ) {
 					foreach ( $allowed_submenu_links as $link ) {
 						if ( $link['parent'] == 'themes.php' && strpos( $link['child'], 'customize.php' ) === 0 ) {
+							$found = true;
+						}
+					}
+				} else if ( 'nav-menus' == $screen->id ) {
+					foreach ( $allowed_submenu_links as $link ) {
+						if ( $link['parent'] == 'themes.php' && strpos( $link['child'], 'nav-menus.php' ) === 0 ) {
 							$found = true;
 						}
 					}
