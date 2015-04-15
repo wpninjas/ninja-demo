@@ -113,16 +113,15 @@ class Ninja_Demo_Restrictions {
 						foreach ( $allowed_submenu_links as $allowed_submenu ) {
 
 
-							if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'customize.php' ) === 0 ) {
-								$found = true;
-							}
+							// if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'customize.php' ) === 0 ) {
+							// 	$found = true;
+							// }
 
-							if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'nav-menus.php' ) === 0 ) {
-								$found = true;
-							}
+							// if ( $parent_slug == 'themes.php' && strpos( $allowed_submenu['child'], 'nav-menus.php' ) === 0 ) {
+							// 	$found = true;
+							// }
 
 							if ( $allowed_submenu['parent'] == $parent_slug && $allowed_submenu['child'] == $child_slug ) {
-
 								if ( strpos( $allowed_submenu['child'], 'post_type=' ) !== false ) {
 									// Get our post type from our string.
 									$start = strpos( $allowed_submenu['child'], 'post_type=' ) + 10;
@@ -176,6 +175,11 @@ class Ninja_Demo_Restrictions {
 							$allowed_pages[] = $child_slug;							
 						} else {
 							remove_submenu_page( htmlentities( $parent_slug ), htmlentities( $child_slug ) );
+							foreach ( $submenu[ $parent_slug ] as $priority => $sub ) {
+								if ( $sub[2] == $child_slug ) {
+									unset( $submenu[ $parent_slug ][ $priority ] );
+								}
+							}
 						}				
 					}
 				}
@@ -211,7 +215,7 @@ class Ninja_Demo_Restrictions {
 					return false;
 				}
 			}
-
+			
 			if ( $pagenow == 'edit.php' || $pagenow == 'post.php' ) {
 				
 				if ( ! isset ( $allowed_cpts[ $post_type ]['edit'] ) || $allowed_cpts[ $post_type ]['edit'] != 1 ) {
