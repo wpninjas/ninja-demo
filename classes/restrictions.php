@@ -249,7 +249,7 @@ class Ninja_Demo_Restrictions {
 					wp_die( __( apply_filters( 'nd_block_msg', 'You do not have sufficient permissions to access this page.' ), 'ninja-demo' ) );
 				}
 
-			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' || $pagenow == 'options-general.php' || $pagenow = 'themes.php' ) {
+			} else if ( $pagenow == 'admin.php' || $pagenow == 'index.php' || $pagenow == 'options-general.php' || $pagenow == 'themes.php' ) {
 				$screen = get_current_screen();
 				if ( $screen->id == 'dashboard' ) {
 					$found = true;
