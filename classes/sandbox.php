@@ -532,7 +532,6 @@ class Ninja_Demo_Sandbox {
 
 	    // Generate a random password.
 	    $random_password = wp_generate_password( $length = 12, $include_standard_special_chars = false );
-
 		// Create our user.
 		$user_id = wp_create_user( $user_name, $random_password, $user_email );
 
@@ -901,7 +900,10 @@ class Ninja_Demo_Sandbox {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
 					Ninja_Demo()->logs->dlog ( 'Cloning source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />' );
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />' );
+					echo 'About to clone source table: <b>' . $source_table . '</b> (table #' . $num_tables . ') to Target table: <b>' . $target_table . '</b><br />';
+
 					$this->clone_table( $source_table, $target_table );
+					
 				}
 				else {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
@@ -909,6 +911,7 @@ class Ninja_Demo_Sandbox {
 					Ninja_Demo()->logs->dlog ( '-----------------------------------------------------------------------------------------------------------<br />');
 				}
 			}
+
 		}
 		else {
 			Ninja_Demo()->logs->dlog ( 'no data for sql - ' . $SQL );
@@ -1052,7 +1055,7 @@ class Ninja_Demo_Sandbox {
 					}
 					else {
 						// don't include _transient_feed_ bloat
-						if (!$is_trans) {
+						if ( !$is_trans && false === strpos($row[$j],'_transient_') ) {
 							$row[$j] = str_replace( "&#039;", "'", $row[$j] );
 							$values[] = "'" . str_replace( $search, $replace, $this->sql_addslashes( $row[$j] ) ) . "'";
 						}
@@ -1061,7 +1064,7 @@ class Ninja_Demo_Sandbox {
 							$is_trans = false;
 						}
 						// set $is_trans for the next field based on the contents of the current field
-						(strpos($row[$j],'_transient_feed_') === false && strpos($row[$j],'_transient_rss_') === false) ? $is_trans = false : $is_trans = true;
+						(strpos($row[$j],'_transient_') === false && strpos($row[$j],'_transient_timeout_') === false) ? $is_trans = false : $is_trans = true;
 
 					} //if ($field_num[$j])
 				} else {
@@ -1083,6 +1086,7 @@ class Ninja_Demo_Sandbox {
 			}
 
 		} // while ($row = mysql_fetch_row($result))
+		
 
 		if ( ! empty( $table_query ) ) {
 			$this->insert_query( $table_query );
