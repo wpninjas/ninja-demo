@@ -396,13 +396,13 @@ class Ninja_Demo_Admin {
 									<td>
 										<fieldset>
 											<?php
-											$sites = wp_get_sites();
+											$sites = get_sites();
 											foreach ( $sites as $site ) {
-												if ( ! Ninja_Demo()->is_sandbox( $site['blog_id'] ) ) {
+												if ( ! Ninja_Demo()->is_sandbox( $site->blog_id ) ) {
 													echo "<pre>";
-													echo $site['path'];
+													echo $site->path;
 													echo ": ";
-													echo Ninja_Demo()->sandbox->count( $site['blog_id'] );
+													echo Ninja_Demo()->sandbox->count( $site->blog_id );
 													echo "</pre>";													
 												}
 

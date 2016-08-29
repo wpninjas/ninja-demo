@@ -785,8 +785,8 @@ class Ninja_Demo_Sandbox {
 	 * @return void
 	 */
 	private function create_site( $sitename, $sitetitle, $source_id, $user_id ) {
-		global $wpdb, $current_site, $current_user;
-		get_currentuserinfo();
+		global $wpdb, $current_site;
+		$current_user = wp_get_current_user();
 
 		$base = PATH_CURRENT_SITE;
 
@@ -884,7 +884,7 @@ class Ninja_Demo_Sandbox {
 
 				// Check to see if this table belongs to another clone.
 				foreach ( $sandboxes as $s ) {
-					if ( Ninja_Demo()->is_sandbox( $s['blog_id'] ) && strpos( $source_table, $wpdb->base_prefix . $s['blog_id'] ) !== false ) {
+					if ( Ninja_Demo()->is_sandbox( $s->blog_id ) && strpos( $source_table, $wpdb->base_prefix . $s->blog_id ) !== false ) {
 						continue 2;
 					}
 				}
